@@ -7,8 +7,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from torchvision import datasets as dset
-
 import utils
 
 
@@ -127,23 +125,16 @@ if __name__ == '__main__':
     args.out_path = os.path.join(os.path.dirname(args.out_path),
                                  '{0:%Y%m%d_%H%M%S}_{1}'.format(datetime.datetime.now(), os.path.basename(args.out_path)))
 
-    args.use_cuda = not args.no_cuda and torch.cuda.is_available()
+    # CUDA
+    utils.check_for_CUDA(args)
 
-    args.device = torch.device("cuda" if args.use_cuda else "cpu")
-
-    args.kwargs = {'num_workers': 1, 'pin_memory': True} if args.use_cuda else {}
-
+    # Seed
     torch.manual_seed(args.seed)
 
     # IMAGES DATALOADER
+    train_loader = utils.make_dataloader(args)
 
-    transform = utils.make_transform()
-
-    assert os.path.exists(args.data_path), "data_path does not exist! Given: " + args.data_path
-    dataset = dset.ImageFolder(root=args.data_path, transform=transform)
-    args.num_of_classes = sum([1 if os.path.isdir(os.path.join(args.data_path, i)) else 0 for i in os.listdir(args.data_path)])
-
-    train_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True, drop_last=True, **args.kwargs)
+    print(args)
 
     # OUT PATH
     if not os.path.exists(args.out_path):
@@ -180,7 +171,7 @@ if __name__ == '__main__':
         print("\nKeyboardInterrupt!\n")
 
     # SAVE FINAL MODEL
-    print("Saving final model")
+    print("Saving final model:", os.path.join(args.out_path, "final.pth"))
     torch.save(model.state_dict(), os.path.join(args.out_path, "final.pth"))
 
 
