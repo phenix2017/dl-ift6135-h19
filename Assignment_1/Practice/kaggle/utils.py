@@ -9,6 +9,7 @@ import torch
 
 from torchvision import datasets as dset
 from torchvision import transforms
+from torch.utils.data.sampler import SubsetRandomSampler
 
 
 def check_for_CUDA(args):
@@ -46,28 +47,58 @@ def write_config_to_file(config, save_path):
 
 
 def make_dataloader(args):
+    # Make transforms
     transform = make_transform(args.resize, args.imsize, args.centercrop, args.centercrop_size, args.tanh_scale, args.normalize)
+    # Make dataset
     assert os.path.exists(args.data_path), "data_path does not exist! Given: " + args.data_path
-    dataset = dset.ImageFolder(root=args.data_path, transform=transform)
-    args.num_of_classes = sum([1 if os.path.isdir(os.path.join(args.data_path, i)) else 0 for i in os.listdir(args.data_path)])
-    print("Data found! # of classes =", args.num_of_classes, ", # of images =", len(dataset))
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=args.shuffle, drop_last=args.drop_last, **args.kwargs)
-    return dataloader
+    # If no split
+    if args.valid_split == 0:
+        dataset = dset.ImageFolder(root=args.data_path, transform=transform)
+        args.num_of_classes = sum([1 if os.path.isdir(os.path.join(args.data_path, i)) else 0 for i in os.listdir(args.data_path)])
+        print("Data found! # of classes =", args.num_of_classes, ", # of images =", len(dataset))
+        torch.manual_seed(args.seed)
+        dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=args.shuffle, drop_last=args.drop_last, **args.kwargs)
+        return dataloader
+    # If data needs to be split into Train and Val
+    else:
+        # https://gist.github.com/kevinzakka/d33bf8d6c7f06a9d8c76d97a7879f5cb
+        train_dataset = dset.ImageFolder(root=args.data_path, transform=transform)
+        valid_dataset = dset.ImageFolder(root=args.data_path, transform=transform)
+        num_train = len(train_dataset)
+        indices = list(range(num_train))
+        split = int(np.floor(args.valid_split * num_train))
+        # Shuffle
+        if args.shuffle:
+            np.random.seed(args.seed)
+            np.random.shuffle(indices)
+        # Train & Val indices
+        train_idx, valid_idx = indices[split:], indices[:split]
+        train_idx, valid_idx = np.arange(1000), 1000 + np.arange(100)
+        train_sampler = SubsetRandomSampler(train_idx)
+        valid_sampler = SubsetRandomSampler(valid_idx)
+        # Train & Val dataloaders
+        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, sampler=train_sampler, **args.kwargs)
+        valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=args.batch_size, sampler=valid_sampler, **args.kwargs)
+        return train_loader, valid_loader
 
 
-def make_plots(losses, accuracy, log_interval, dataset_length, save_path, init_epoch=0):
-    iters = np.arange(len(losses))*log_interval/dataset_length + init_epoch
+def make_plots(train_losses, train_accuracy, log_interval, train_iters_per_epoch, save_path,
+               valid_losses, valid_accuracy, init_epoch=0):
+    train_iters = np.arange(len(train_losses))*log_interval/train_iters_per_epoch + init_epoch
+    valid_iters = np.arange(len(valid_losses)) + init_epoch
     fig = plt.figure(figsize=(10, 20))
     plt.subplot(211)
-    plt.plot(iters, np.zeros(iters.shape), 'k--', alpha=0.5)
-    plt.plot(iters, losses, label='Loss')
-    # plt.legend()
+    plt.plot(train_iters, np.zeros(train_iters.shape), 'k--', alpha=0.5)
+    plt.plot(train_iters, train_losses, label='Train Loss')
+    plt.plot(valid_iters, valid_losses, label='Valid Loss')
+    plt.legend()
     plt.yscale("symlog")
     plt.title("Loss")
     plt.xlabel("Epochs")
     plt.subplot(212)
-    plt.plot(iters, accuracy, label='Accuracy')
-    # plt.legend()
+    plt.plot(train_iters, train_accuracy, label='Train Acc')
+    plt.plot(valid_iters, valid_accuracy, label='Valid Acc')
+    plt.legend()
     plt.ylim([0, 1])
     plt.title("Accuracy")
     plt.xlabel("Epochs")

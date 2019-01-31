@@ -67,7 +67,7 @@ def train(args, model, train_loader, optimizer, epoch,
             print('Train Epoch: {} [{}/{} ({}/{}) ({:.0f}%)]\tLoss: {:.6f}\tAccuracy: {:.4f}'.format(
                 epoch, batch_idx, len(train_loader), batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), losses[-1], accuracy[-1]))
-            utils.make_plots(losses, accuracy, args.log_interval, len(train_loader), args.out_path, init_epoch=0)
+            utils.make_plots(losses, accuracy, args.log_interval, len(train_loader), args.out_path)
         # Save models
         if batch_idx % args.model_save_interval == 0:
             model_name = os.path.join(args.out_path, 'model_epoch_{:04d}_batch_{:05d}_of_{:05d}.pth'.format(epoch, batch_idx, len(train_loader)))
@@ -75,29 +75,13 @@ def train(args, model, train_loader, optimizer, epoch,
             torch.save(model.state_dict(), model_name)
 
 
-def test(args, model, test_loader):
-    model.eval()
-    test_loss = 0
-    correct = 0
-    with torch.no_grad():
-        for data, target in test_loader:
-            data, target = data.to(args.device), target.to(args.device)
-            output = model(data)
-            test_loss += nn.NLLLoss()(output, target, reduction='sum').item() # sum up batch loss
-            pred = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
-            correct += pred.eq(target.view_as(pred)).sum().item()
-
-    test_loss /= len(test_loader.dataset)
-
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset),
-        100. * correct / len(test_loader.dataset)))
-
-
 if __name__ == '__main__':
 
     # Get all parameters
     args = get_params()
+
+    # No train-val split
+    args.val_split = 0
 
     # CUDA
     utils.check_for_CUDA(args)
@@ -123,6 +107,7 @@ if __name__ == '__main__':
 
     # MODEL
 
+    torch.manual_seed(args.seed)
     model = PerfectClassifier().to(args.device)
     # optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
@@ -151,3 +136,4 @@ if __name__ == '__main__':
 
 # python3 perfect_classifier.py --data_path '/home/user1/Datasets/CatsAndDogs/trainset' --out_path '/home/user1/test/cnd1'
 # python perfect_classifier.py --data_path '/home/voletivi/scratch/catsndogs/data/PetImages' --out_path '/home/voletivi/scratch/catsndogs/experiments/cnd1'
+# python perfect_classifier.py --data_path '/home/voletivi/scratch/catsndogs/data/kaggle/trainset' --out_path '/home/voletivi/scratch/catsndogs/experiments/cnd_kaggle_1'
