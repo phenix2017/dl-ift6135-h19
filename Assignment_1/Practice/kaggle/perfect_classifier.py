@@ -150,6 +150,9 @@ if __name__ == '__main__':
         print("Making", args.out_path)
         os.makedirs(args.out_path)
 
+    # Copu all scripts
+    utils.copy_scripts(args.out_path)
+
     # Save all args
     utils.write_config_to_file(args, args.out_path)
 
@@ -182,3 +185,4 @@ if __name__ == '__main__':
 
 
 # python3 perfect_classifier.py --data_path '/home/user1/Datasets/CatsAndDogs/trainset' --out_path '/home/user1/test/cnd1'
+# python perfect_classifier.py --data_path '/home/voletivi/scratch/catsndogs/data/PetImages' --out_path '/home/voletivi/scratch/catsndogs/experiments/cnd1'

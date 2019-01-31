@@ -3,8 +3,14 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import shutil
 
 from torchvision import transforms
+
+
+def copy_scripts(dst):
+    for file in glob.glob('*.py'):
+        shutil.copy(file, dst)
 
 
 def make_plots(losses, accuracy, log_interval, dataset_length, save_path, init_epoch=0):
