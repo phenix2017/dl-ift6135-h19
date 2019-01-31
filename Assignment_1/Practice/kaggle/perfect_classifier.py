@@ -9,6 +9,8 @@ import torch.optim as optim
 
 import utils
 
+from parameters import get_params
+
 
 class PerfectClassifier(nn.Module):
 
@@ -73,7 +75,6 @@ def train(args, model, train_loader, optimizer, epoch,
             torch.save(model.state_dict(), model_name)
 
 
-
 def test(args, model, test_loader):
     model.eval()
     test_loss = 0
@@ -95,35 +96,8 @@ def test(args, model, test_loader):
 
 if __name__ == '__main__':
 
-    # ARGS
-    parser = argparse.ArgumentParser(description='PyTorch Cats & Dogs')
-    parser.add_argument('--data_path', type=str,
-                        help='Path to data : Images Folder')
-    parser.add_argument('--out_path', type=str,
-                        help='Path to data : Directory out: a/b/exp1 (-> a/b/<TIME>_exp1)')
-    parser.add_argument('--batch-size', type=int, default=64, metavar='N',
-                        help='input batch size for training (default: 64)')
-    parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
-                        help='input batch size for testing (default: 1000)')
-    parser.add_argument('--epochs', type=int, default=10, metavar='N',
-                        help='number of epochs to train (default: 10)')
-    parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
-                        help='learning rate (default: 0.01)')
-    parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
-                        help='SGD momentum (default: 0.5)')
-    parser.add_argument('--no-cuda', action='store_true', default=False,
-                        help='disables CUDA training')
-    parser.add_argument('--seed', type=int, default=29, metavar='S',
-                        help='random seed (default: 1)')
-    parser.add_argument('--log-interval', type=int, default=10, metavar='N',
-                        help='how many batches to wait before logging training status')
-    parser.add_argument('--model-save-interval', type=int, default=100, metavar='N',
-                        help='how many batches to wait before saving model')
-
-    args = parser.parse_args()
-
-    args.out_path = os.path.join(os.path.dirname(args.out_path),
-                                 '{0:%Y%m%d_%H%M%S}_{1}'.format(datetime.datetime.now(), os.path.basename(args.out_path)))
+    # Get all parameters
+    args = get_params()
 
     # CUDA
     utils.check_for_CUDA(args)
@@ -141,7 +115,7 @@ if __name__ == '__main__':
         print("Making", args.out_path)
         os.makedirs(args.out_path)
 
-    # Copu all scripts
+    # Copy all scripts
     utils.copy_scripts(args.out_path)
 
     # Save all args

@@ -23,19 +23,18 @@ def copy_scripts(dst):
 
 
 def make_transform(resize=False, imsize=64, centercrop=False, centercrop_size=128,
-                   totensor=True, tanh_scale=True, normalize=False):
+                   tanh_scale=True, normalize=False, norm_mean=(0.5, 0.5, 0.5), norm_std=(0.5, 0.5, 0.5)):
         options = []
         if resize:
             options.append(transforms.Resize((imsize, imsize)))
         if centercrop:
             options.append(transforms.CenterCrop(centercrop_size))
-        if totensor:
-            options.append(transforms.ToTensor())
+        options.append(transforms.ToTensor())
         if tanh_scale:
             f = lambda x: x*2 - 1
             options.append(transforms.Lambda(f))
         if normalize:
-            options.append(transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)))
+            options.append(transforms.Normalize(norm_mean, norm_std))
         transform = transforms.Compose(options)
         return transform
 
@@ -47,12 +46,12 @@ def write_config_to_file(config, save_path):
 
 
 def make_dataloader(args):
-    transform = make_transform()
+    transform = make_transform(args.resize, args.imsize, args.centercrop, args.centercrop_size, args.tanh_scale, args.normalize)
     assert os.path.exists(args.data_path), "data_path does not exist! Given: " + args.data_path
     dataset = dset.ImageFolder(root=args.data_path, transform=transform)
     args.num_of_classes = sum([1 if os.path.isdir(os.path.join(args.data_path, i)) else 0 for i in os.listdir(args.data_path)])
     print("Data found! # of classes =", args.num_of_classes, ", # of images =", len(dataset))
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True, drop_last=True, **args.kwargs)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=args.shuffle, drop_last=args.drop_last, **args.kwargs)
     return dataloader
 
 
