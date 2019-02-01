@@ -19,8 +19,10 @@ class PerfectClassifier(nn.Module):
         self.conv1 = nn.Conv2d(3, 32, 3, 1, 1)
         self.conv2 = nn.Conv2d(32, 64, 3, 1, 1)
         self.conv3 = nn.Conv2d(64, 128, 3, 1, 1)
-        self.fc1 = nn.Linear(128*8*8, 512)
-        self.fc2 = nn.Linear(512, 2)
+        self.x_shape = [0, 128, 8, 8]
+        self.linear_dim = 512
+        self.fc1 = nn.Linear(self.x_shape[1]*self.x_shape[2]*self.x_shape[3], self.linear_dim)
+        self.fc2 = nn.Linear(self.linear_dim, 2)
 
     def forward(self, x):
         # bx3x64x64
@@ -33,15 +35,15 @@ class PerfectClassifier(nn.Module):
         x = self.conv3(x)   # bx128x16x16
         x = nn.ReLU()(x)
         x = nn.MaxPool2d(2, 2)(x)   # bx128x8x8
-        x = x.view(-1, 128*8*8)     # bx128*8*8
+        x = x.view(-1, self.x_shape[1]*self.x_shape[2]*self.x_shape[3])     # bx128*8*8
         x = self.fc1(x)     # bx512
         x = nn.ReLU()(x)
         x = self.fc2(x)     # bx2
         return nn.LogSoftmax(dim=1)(x)
 
 
-def train(args, model, train_loader, optimizer, epoch,
-          train_accuracy, train_losses, valid_accuracy, valid_losses):
+def train(args, model, train_loader, optimizer, epoch, start_time,
+          train_accuracy, train_losses, valid_accuracy=[], valid_losses=[]):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
         # Get data
@@ -60,8 +62,14 @@ def train(args, model, train_loader, optimizer, epoch,
             train_losses.append(loss.item())
             pred = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
             train_accuracy.append(pred.eq(target.view_as(pred)).sum().item()/len(pred))
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tAccuracy: {:.4f}'.format(
-                epoch, batch_idx, len(train_loader), 100.*batch_idx/len(train_loader), train_losses[-1], train_accuracy[-1]))
+            # Get time elapsed
+            curr_time = time.time()
+            curr_time_str = datetime.datetime.fromtimestamp(curr_time).strftime('%Y-%m-%d %H:%M:%S')
+            elapsed = utils.get_time_elapsed_str(curr_time - start_time)
+            # Log
+            print('[{}] : Elapsed [{}]: Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tAccuracy: {:.4f}'.format(
+                curr_time_str, elapsed, epoch, batch_idx, len(train_loader), 100.*batch_idx/len(train_loader),
+                train_losses[-1], train_accuracy[-1]))
             utils.mem_check()
             utils.make_plots(train_losses, train_accuracy, args.log_interval, len(train_loader), args.out_path,
                              valid_losses, valid_accuracy)
@@ -88,6 +96,7 @@ if __name__ == '__main__':
 
     # IMAGES DATALOADER
     train_loader = utils.make_dataloader(args)
+    # valid_loader = utils.make_dataloader(args)
 
     print(args)
 
@@ -106,7 +115,6 @@ if __name__ == '__main__':
 
     torch.manual_seed(args.seed)
     model = PerfectClassifier().to(args.device)
-    # optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     # TRAIN
@@ -118,10 +126,10 @@ if __name__ == '__main__':
     print("Starting training...")
 
     try:
-        accuracy, accuracy_in_interval, losses, losses_in_interval = [], [], [], []
+        accuracy, losses = [], []
         for epoch in range(1, args.epochs + 1):
             train(args, model, train_loader, optimizer, epoch,
-                  accuracy, accuracy_in_interval, losses, losses_in_interval)
+                  accuracy, losses)
             # test(args, model, args.device, test_loader)
     except KeyboardInterrupt:
         print("\nKeyboardInterrupt!\n")
@@ -132,5 +140,5 @@ if __name__ == '__main__':
 
 
 # python3 perfect_classifier.py --data_path '/home/user1/Datasets/CatsAndDogs/trainset' --out_path '/home/user1/test/cnd1'
-# python perfect_classifier.py --data_path '/home/voletivi/scratch/catsndogs/data/PetImages' --out_path '/home/voletivi/scratch/catsndogs/experiments/cnd1'
+# python perfect_classifier.py --data_path '/home/voletivi/scratch/catsndogs/data/PetImages' --out_path '/home/voletivi/scratch/catsndogs/experiments/cnd_PetImages_1'
 # python perfect_classifier.py --data_path '/home/voletivi/scratch/catsndogs/data/kaggle/trainset' --out_path '/home/voletivi/scratch/catsndogs/experiments/cnd_kaggle_1'

@@ -137,7 +137,6 @@ if __name__ == '__main__':
 
     torch.manual_seed(args.seed)
     model = CnDClassifier().to(args.device)
-    # optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     optimizer = optim.SGD(model.parameters(), lr=args.lr)
 
     # TRAIN
