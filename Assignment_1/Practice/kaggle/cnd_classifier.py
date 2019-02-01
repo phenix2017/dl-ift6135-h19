@@ -12,15 +12,17 @@ import utils
 from parameters import get_params
 
 
-class PerfectClassifier(nn.Module):
+class CnDClassifier(nn.Module):
 
     def __init__(self, state_dict_path=None):
-        super(PerfectClassifier, self).__init__()
-        self.conv1 = nn.Conv2d(3, 8, 3, 1, 1)
-        self.conv2 = nn.Conv2d(8, 16, 3, 1, 1)
-        self.conv3 = nn.Conv2d(16, 32, 3, 1, 1)
-        self.fc1 = nn.Linear(32*8*8, 16)
-        self.fc2 = nn.Linear(16, 2)
+        super(CnDClassifier, self).__init__()
+        self.conv1 = nn.Conv2d(3, 32, 3, 1, 1)
+        self.conv2 = nn.Conv2d(32, 64, 3, 1, 1)
+        self.conv3 = nn.Conv2d(64, 128, 3, 1, 1)
+        self.x_shape = [0, 128, 8, 8]
+        self.linear_dim = 512
+        self.fc1 = nn.Linear(self.x_shape[1]*self.x_shape[2]*self.x_shape[3], self.linear_dim)
+        self.fc2 = nn.Linear(self.linear_dim, 2)
 
     def forward(self, x):
         # bx3x64x64
@@ -33,7 +35,7 @@ class PerfectClassifier(nn.Module):
         x = self.conv3(x)   # bx128x16x16
         x = nn.ReLU()(x)
         x = nn.MaxPool2d(2, 2)(x)   # bx128x8x8
-        x = x.view(-1, 32*8*8)     # bx128*8*8
+        x = x.view(-1, self.x_shape[1]*self.x_shape[2]*self.x_shape[3])     # bx128*8*8
         x = self.fc1(x)     # bx512
         x = nn.ReLU()(x)
         x = self.fc2(x)     # bx2
@@ -67,6 +69,7 @@ def train(args, model, train_loader, optimizer, epoch,
             train_losses_in_interval = []
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tAccuracy: {:.4f}'.format(
                 epoch, batch_idx, len(train_loader), 100.*batch_idx/len(train_loader), train_losses[-1], train_accuracy[-1]))
+            utils.mem_check()
             utils.make_plots(train_losses, train_accuracy, args.log_interval, len(train_loader), args.out_path,
                              valid_losses, valid_accuracy)
         # Save models
@@ -132,9 +135,9 @@ if __name__ == '__main__':
     # MODEL
 
     torch.manual_seed(args.seed)
-    model = PerfectClassifier().to(args.device)
+    model = CnDClassifier().to(args.device)
     # optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    optimizer = optim.SGD(model.parameters(), lr=args.lr)
 
     # TRAIN
 

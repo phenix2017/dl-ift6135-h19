@@ -4,12 +4,20 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import psutil
 import shutil
 import torch
 
 from torchvision import datasets as dset
 from torchvision import transforms
 from torch.utils.data.sampler import SubsetRandomSampler
+
+
+def mem_check():
+    import os
+    import psutil
+    process = psutil.Process(os.getpid())
+    print("Mem:", process.memory_info().rss/1024/1024/1024, "GB")
 
 
 def check_for_CUDA(args):
@@ -73,7 +81,7 @@ def make_dataloader(args):
             np.random.shuffle(indices)
         # Train & Val indices
         train_idx, valid_idx = indices[split:], indices[:split]
-        train_idx, valid_idx = np.arange(1000), 1000 + np.arange(100)
+        print("Train images #:", len(train_idx), "; Valid images #:", len(valid_idx))
         train_sampler = SubsetRandomSampler(train_idx)
         valid_sampler = SubsetRandomSampler(valid_idx)
         # Train & Val dataloaders
