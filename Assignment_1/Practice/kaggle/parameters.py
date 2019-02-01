@@ -14,9 +14,15 @@ def get_params():
     parser.add_argument('--out_path', type=str,
                         help='Path to data : Directory out: a/b/exp1 (-> a/b/<TIME>_exp1)')
 
+    # Evaluate
+    parser.add_argument('--eval', action='store_true', default=False,
+                        help='enables ONLY eval mode, preferably with pth')
+    parser.add_argument('--pth', type=str, default='',
+                        help='Path to pretrained model (e.g. model_epoch_0.pth)')
+
     # Training params
     parser.add_argument('--batch-size', type=int, default=128, metavar='N',
-                        help='input batch size for training (default: 64)')
+                        help='input batch size for training (default: 128)')
     parser.add_argument('--valid-split', type=float, default=0.1, help='Ratio of train-val split (e.g. 0.2)')
     parser.add_argument('--epochs', type=int, default=100, metavar='N',
                         help='number of epochs to train (default: 10)')
@@ -53,7 +59,8 @@ def get_params():
     args.resize = not args.dont_resize
     args.tanh_scale = not args.dont_tanh_scale
 
-    args.out_path = os.path.join(os.path.dirname(args.out_path),
-                                 '{0:%Y%m%d_%H%M%S}_{1}'.format(datetime.datetime.now(), os.path.basename(args.out_path)))
+    if not args.eval:
+        args.out_path = os.path.join(os.path.dirname(args.out_path),
+                                     '{0:%Y%m%d_%H%M%S}_{1}'.format(datetime.datetime.now(), os.path.basename(args.out_path)))
 
     return args

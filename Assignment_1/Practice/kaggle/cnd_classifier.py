@@ -1,11 +1,14 @@
 # https://github.com/pytorch/examples/blob/master/mnist/main.py
 import argparse
+import csv
 import datetime
 import numpy as np
 import os
+import sys
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import tqdm
 import time
 
 import utils
@@ -15,15 +18,22 @@ from parameters import get_params
 
 class CnDClassifier(nn.Module):
 
-    def __init__(self, state_dict_path=None):
+    def __init__(self, state_dict_path=''):
         super(CnDClassifier, self).__init__()
         self.conv1 = nn.Conv2d(3, 8, 3, 1, 1)
-        self.conv2 = nn.Conv2d(32, 16, 3, 1, 1)
+        self.conv2 = nn.Conv2d(8, 16, 3, 1, 1)
         # self.conv3 = nn.Conv2d(64, 128, 3, 1, 1)
         self.x_shape = [0, 16, 16, 16]
         self.linear_dim = 16
         self.fc1 = nn.Linear(self.x_shape[1]*self.x_shape[2]*self.x_shape[3], self.linear_dim)
         self.fc2 = nn.Linear(self.linear_dim, 2)
+
+        if state_dict_path != '':
+            # Check
+            if os.path.exists(state_dict_path):
+                print("Loading", state_dict_path)
+            # Load pretrained model
+            self.load_state_dict(torch.load(state_dict_path))
 
     def forward(self, x):
         # bx3x64x64
@@ -78,7 +88,7 @@ def train(args, model, train_loader, optimizer, epoch, start_time, log_file,
             elapsed = utils.get_time_elapsed_str(curr_time - start_time)
 
             # Log
-            log = '[{}] : Elapsed [{}]: Epoch: {} [{}/{} ({:.0f}%)]\tTRAIN Loss: {:.6f}\tAccuracy: {:.4f}'.format(
+            log = '[{}] : Elapsed [{}]: Epoch: {} [{}/{} ({:.0f}%)]\tTRAIN Loss: {:.6f}\tAccuracy: {:.4f}\n'.format(
                 curr_time_str, elapsed, epoch, batch_idx, len(train_loader), 100.*batch_idx/len(train_loader),
                 train_losses[-1], train_accuracy[-1])
             print(log)
@@ -130,6 +140,55 @@ def test(args, model, test_loader, epoch, start_time, log_file,
                      valid_losses, valid_accuracy)
 
 
+def eval(args, model, eval_loader):
+    model.eval()
+    preds = []
+
+    # Predict
+    with torch.no_grad():
+        for data, target in tqdm.tqdm(eval_loader):
+            data, target = data.to(args.device), target.to(args.device)
+            output = model(data)
+            preds += output.argmax(dim=1).tolist() # get the index of the max log-probability
+
+    # Read image names
+    ids = [int(os.path.splitext(i)[0]) for i in sorted(os.listdir(os.path.join(args.data_path, 'test')))]
+
+    # Sort ids
+    sort_order = np.argsort(ids)
+    ids = [ids[i] for i in sort_order]
+
+    # Sort preds and make labels
+    labels = eval_loader.dataset.classes
+    pred_labels = [labels[preds[i]] for i in sort_order]
+
+    # Write csv
+    csv_file_name = os.path.join(os.path.dirname(args.pth), 'submission_' + os.path.basename(os.path.dirname(args.pth)) + '_' + os.path.splitext(os.path.basename(args.pth))[0] + '.csv')
+    print("Writing", csv_file_name)
+    with open(csv_file_name, mode='w') as csv_file:
+        csv_writer = csv.writer(csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        csv_writer.writerow(['id', 'label'])
+        for i, l in zip(ids, pred_labels):
+            csv_writer.writerow([str(i), l])
+
+
+def imshow(inp, title=None):
+    # del sys.modules['matplotlib']
+    # import matplotlib
+    # matplotlib.use('TkAgg')
+    import matplotlib.pyplot as plt
+    """Imshow for Tensor."""
+    inp = inp.numpy().transpose((1, 2, 0))
+    mean = np.array([0.485, 0.456, 0.406])
+    std = np.array([0.229, 0.224, 0.225])
+    inp = std * inp + mean
+    inp = np.clip(inp, 0, 1)
+    plt.imshow(inp)
+    if title is not None:
+        plt.title(title)
+    plt.pause(0)  # pause a bit so that plots are updated
+
+
 if __name__ == '__main__':
 
     # Get all parameters
@@ -137,6 +196,25 @@ if __name__ == '__main__':
 
     # CUDA
     utils.check_for_CUDA(args)
+
+    # Eval
+    if args.eval:
+        pth_dir_name = os.path.dirname(args.pth)
+        model = torch.load(os.path.join(pth_dir_name, 'model.pth'))
+        model.load_state_dict(torch.load(args.pth))
+        args.valid_split = 0
+        args.centercrop = False
+        args.shuffle = False
+        args.drop_last = False
+        eval_loader = utils.make_dataloader(args)
+        # # Visualize
+        # inputs, classes = next(iter(eval_loader))
+        # import torchvision.utils
+        # out = torchvision.utils.make_grid(inputs)
+        # imshow(out)
+        # # Visualize end
+        eval(args, model, eval_loader)
+        sys.exit()
 
     # Seed
     torch.manual_seed(args.seed)
@@ -203,5 +281,9 @@ if __name__ == '__main__':
     torch.save(model.state_dict(), os.path.join(args.out_path, "final.pth"))
 
 
+# TRAIN
 # python3 cnd_classifier.py --data_path '/home/user1/Datasets/CatsAndDogs/trainset' --out_path '/home/user1/CnD_experiments/cnd2'
 # python cnd_classifier.py --data_path '/home/voletivi/scratch/catsndogs/data/kaggle/trainset' --out_path '/home/voletivi/scratch/catsndogs/experiments/cnd_kaggle_1'
+
+# EVAL
+# python3 cnd_classifier.py --eval --pth '/home/user1/CnD_experiments/20190201_014519_cnd_kaggle_smllerFC_1/model_epoch_0016_batch_00100_of_00141.pth' --data_path '/home/user1/Datasets/CatsAndDogs/testset' --out_path '/home/user1/CnD_experiments/20190201_014519_cnd_kaggle_smllerFC_1'
