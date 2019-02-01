@@ -6,6 +6,7 @@ import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import time
 
 import utils
 
@@ -42,9 +43,8 @@ class CnDClassifier(nn.Module):
         return nn.LogSoftmax(dim=1)(x)
 
 
-def train(args, model, train_loader, optimizer, epoch,
-          train_accuracy, train_accuracy_in_interval, train_losses, train_losses_in_interval,
-          valid_accuracy, valid_losses):
+def train(args, model, train_loader, optimizer, epoch, start_time,
+          train_accuracy, train_losses, valid_accuracy, valid_losses):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
         # Get data
@@ -52,23 +52,25 @@ def train(args, model, train_loader, optimizer, epoch,
         # Get model output
         optimizer.zero_grad()
         output = model(data)
-        # Check accuracy
-        pred = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
-        train_accuracy_in_interval.append(pred.eq(target.view_as(pred)).sum().item()/len(pred))
         # Calc loss
         loss = nn.NLLLoss()(output, target)
-        train_losses_in_interval.append(loss.item())
         # Backprop
         loss.backward()
         optimizer.step()
         # Log, Plot
         if batch_idx % args.log_interval == 0:
-            train_accuracy.append(np.mean(train_accuracy_in_interval))
-            train_accuracy_in_interval = []
-            train_losses.append(np.mean(train_losses_in_interval))
-            train_losses_in_interval = []
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tAccuracy: {:.4f}'.format(
-                epoch, batch_idx, len(train_loader), 100.*batch_idx/len(train_loader), train_losses[-1], train_accuracy[-1]))
+            # Check loss, accuracy
+            train_losses.append(loss.item())
+            pred = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
+            train_accuracy.append(pred.eq(target.view_as(pred)).sum().item()/len(pred))
+            # Get time elapsed
+            curr_time = time.time()
+            curr_time_str = datetime.datetime.fromtimestamp(curr_time).strftime('%Y-%m-%d %H:%M:%S')
+            elapsed = utils.get_time_elapsed_str(curr_time - start_time)
+            # Log
+            print('[{}] : Elapsed [{}]: Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tAccuracy: {:.4f}'.format(
+                curr_time_str, elapsed, epoch, batch_idx, len(train_loader), 100.*batch_idx/len(train_loader),
+                train_losses[-1], train_accuracy[-1]))
             utils.mem_check()
             utils.make_plots(train_losses, train_accuracy, args.log_interval, len(train_loader), args.out_path,
                              valid_losses, valid_accuracy)
@@ -80,8 +82,7 @@ def train(args, model, train_loader, optimizer, epoch,
 
 
 def test(args, model, test_loader,
-         train_accuracy, train_accuracy_in_interval, train_losses, train_losses_in_interval,
-         valid_accuracy, valid_losses):
+         train_losses, train_accuracy, valid_losses, valid_accuracy):
     model.eval()
     test_loss = 0
     correct = 0
@@ -96,8 +97,8 @@ def test(args, model, test_loader,
     test_loss /= len(test_loader.dataset)*args.valid_split
     test_accuracy = correct/int(len(test_loader.dataset)*args.valid_split)
 
-    valid_accuracy.append(test_accuracy)
     valid_losses.append(test_loss)
+    valid_accuracy.append(test_accuracy)
 
     print('\nTest set: Average loss: {:.4f}, Accuracy: {:.4f} ({}/{})\n'.format(
           test_loss, test_accuracy, correct, int(len(test_loader.dataset)*args.valid_split)))
@@ -146,20 +147,16 @@ if __name__ == '__main__':
     torch.save(model, os.path.join(args.out_path, "model.pth"))
 
     print("Starting training...")
+    start_time = time.time()
 
     try:
-        train_accuracy, train_accuracy_in_interval, train_losses, train_losses_in_interval = [], [], [], []
-        valid_accuracy, valid_accuracy_in_interval, valid_losses, valid_losses_in_interval = [], [], [], []
-        test(args, model, valid_loader,
-             train_accuracy, train_accuracy_in_interval, train_losses, train_losses_in_interval,
-             valid_accuracy, valid_losses)
+        train_losses, train_accuracy = [], []
+        valid_losses, valid_accuracy = [], []
+        test(args, model, valid_loader, train_losses, train_accuracy, valid_losses, valid_accuracy)
         for epoch in range(1, args.epochs + 1):
-            train(args, model, train_loader, optimizer, epoch,
-                  train_accuracy, train_accuracy_in_interval, train_losses, train_losses_in_interval,
-                  valid_accuracy, valid_losses)
-            test(args, model, valid_loader,
-                 train_accuracy, train_accuracy_in_interval, train_losses, train_losses_in_interval,
-                 valid_accuracy, valid_losses)
+            train(args, model, train_loader, optimizer, epoch, start_time,
+                  train_losses, train_accuracy, valid_losses, valid_accuracy)
+            test(args, model, valid_loader, train_losses, train_accuracy, valid_losses, valid_accuracy)
     except KeyboardInterrupt:
         print("\nKeyboardInterrupt!\n")
 

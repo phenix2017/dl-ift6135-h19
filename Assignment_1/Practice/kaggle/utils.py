@@ -1,3 +1,4 @@
+import datetime
 import glob
 import matplotlib
 matplotlib.use('Agg')
@@ -22,6 +23,7 @@ def mem_check():
 
 def check_for_CUDA(args):
     args.use_cuda = not args.no_cuda and torch.cuda.is_available()
+    print("Use CUDA:", args.use_cuda)
     args.device = torch.device("cuda" if args.use_cuda else "cpu")
     args.kwargs = {'num_workers': 1, 'pin_memory': True} if args.use_cuda else {}
 
@@ -30,6 +32,10 @@ def copy_scripts(dst):
     for file in glob.glob('*.py'):
         shutil.copy(file, dst)
 
+
+def get_time_elapsed_str(time_diff):
+    delta = datetime.timedelta(seconds=time_diff)
+    return str(delta - datetime.timedelta(microseconds=delta.microseconds))
 
 def make_transform(resize=False, imsize=64, centercrop=False, centercrop_size=128,
                    tanh_scale=True, normalize=False, norm_mean=(0.5, 0.5, 0.5), norm_std=(0.5, 0.5, 0.5)):
@@ -100,7 +106,6 @@ def make_plots(train_losses, train_accuracy, log_interval, train_iters_per_epoch
     plt.plot(train_iters, train_losses, label='Train Loss')
     plt.plot(valid_iters, valid_losses, label='Valid Loss')
     plt.legend()
-    plt.yscale("symlog")
     plt.title("Loss")
     plt.xlabel("Epochs")
     plt.subplot(212)

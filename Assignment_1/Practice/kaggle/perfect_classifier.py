@@ -41,7 +41,7 @@ class PerfectClassifier(nn.Module):
 
 
 def train(args, model, train_loader, optimizer, epoch,
-          accuracy, accuracy_in_interval, losses, losses_in_interval):
+          train_accuracy, train_losses, valid_accuracy, valid_losses):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
         # Get data
@@ -49,25 +49,22 @@ def train(args, model, train_loader, optimizer, epoch,
         # Get model output
         optimizer.zero_grad()
         output = model(data)
-        # Check accuracy
-        pred = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
-        accuracy_in_interval.append(pred.eq(target.view_as(pred)).sum().item()/args.batch_size)
         # Calc loss
         loss = nn.NLLLoss()(output, target)
-        losses_in_interval.append(loss.item())
         # Backprop
         loss.backward()
         optimizer.step()
         # Log, Plot
         if batch_idx % args.log_interval == 0:
-            accuracy.append(np.mean(accuracy_in_interval))
-            accuracy_in_interval = []
-            losses.append(np.mean(losses_in_interval))
-            losses_in_interval = []
-            print('Train Epoch: {} [{}/{} ({}/{}) ({:.0f}%)]\tLoss: {:.6f}\tAccuracy: {:.4f}'.format(
-                epoch, batch_idx, len(train_loader), batch_idx * len(data), len(train_loader.dataset),
-                100. * batch_idx / len(train_loader), losses[-1], accuracy[-1]))
-            utils.make_plots(losses, accuracy, args.log_interval, len(train_loader), args.out_path)
+            # Check loss, accuracy
+            train_losses.append(loss.item())
+            pred = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
+            train_accuracy.append(pred.eq(target.view_as(pred)).sum().item()/len(pred))
+            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tAccuracy: {:.4f}'.format(
+                epoch, batch_idx, len(train_loader), 100.*batch_idx/len(train_loader), train_losses[-1], train_accuracy[-1]))
+            utils.mem_check()
+            utils.make_plots(train_losses, train_accuracy, args.log_interval, len(train_loader), args.out_path,
+                             valid_losses, valid_accuracy)
         # Save models
         if batch_idx % args.model_save_interval == 0:
             model_name = os.path.join(args.out_path, 'model_epoch_{:04d}_batch_{:05d}_of_{:05d}.pth'.format(epoch, batch_idx, len(train_loader)))
