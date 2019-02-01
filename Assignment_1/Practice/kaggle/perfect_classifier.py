@@ -3,6 +3,7 @@ import argparse
 import datetime
 import numpy as np
 import os
+import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -42,37 +43,51 @@ class PerfectClassifier(nn.Module):
         return nn.LogSoftmax(dim=1)(x)
 
 
-def train(args, model, train_loader, optimizer, epoch, start_time,
-          train_accuracy, train_losses, valid_accuracy=[], valid_losses=[]):
+def train(args, model, train_loader, optimizer, epoch, start_time, log_file,
+          train_losses, train_accuracy, valid_losses, valid_accuracy):
+
     model.train()
+
     for batch_idx, (data, target) in enumerate(train_loader):
+
         # Get data
         data, target = data.to(args.device), target.to(args.device)
+
         # Get model output
         optimizer.zero_grad()
         output = model(data)
+
         # Calc loss
         loss = nn.NLLLoss()(output, target)
+
         # Backprop
         loss.backward()
         optimizer.step()
+
         # Log, Plot
         if batch_idx % args.log_interval == 0:
+
             # Check loss, accuracy
             train_losses.append(loss.item())
             pred = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
             train_accuracy.append(pred.eq(target.view_as(pred)).sum().item()/len(pred))
+
             # Get time elapsed
             curr_time = time.time()
             curr_time_str = datetime.datetime.fromtimestamp(curr_time).strftime('%Y-%m-%d %H:%M:%S')
             elapsed = utils.get_time_elapsed_str(curr_time - start_time)
+
             # Log
-            print('[{}] : Elapsed [{}]: Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tAccuracy: {:.4f}'.format(
+            log = '[{}] : Elapsed [{}]: Epoch: {} [{}/{} ({:.0f}%)]\tTRAIN Loss: {:.6f}\tAccuracy: {:.4f}'.format(
                 curr_time_str, elapsed, epoch, batch_idx, len(train_loader), 100.*batch_idx/len(train_loader),
-                train_losses[-1], train_accuracy[-1]))
+                train_losses[-1], train_accuracy[-1])
+            print(log)
+            log_file.write(log)
+            log_file.flush()
             utils.mem_check()
             utils.make_plots(train_losses, train_accuracy, args.log_interval, len(train_loader), args.out_path,
                              valid_losses, valid_accuracy)
+
         # Save models
         if batch_idx % args.model_save_interval == 0:
             model_name = os.path.join(args.out_path, 'model_epoch_{:04d}_batch_{:05d}_of_{:05d}.pth'.format(epoch, batch_idx, len(train_loader)))
@@ -86,7 +101,7 @@ if __name__ == '__main__':
     args = get_params()
 
     # No train-val split
-    args.val_split = 0
+    args.valid_split = 0
 
     # CUDA
     utils.check_for_CUDA(args)
@@ -124,12 +139,16 @@ if __name__ == '__main__':
     torch.save(model, os.path.join(args.out_path, "model.pth"))
 
     print("Starting training...")
+    start_time = time.time()
+
+    # Log file
+    log_file_name = os.path.join(args.out_path, 'log.txt')
+    log_file = open(log_file_name, "wt")
 
     try:
         accuracy, losses = [], []
         for epoch in range(1, args.epochs + 1):
-            train(args, model, train_loader, optimizer, epoch,
-                  accuracy, losses)
+            train(args, model, train_loader, optimizer, epoch, start_time, log_file, losses, accuracy, [], [])
             # test(args, model, args.device, test_loader)
     except KeyboardInterrupt:
         print("\nKeyboardInterrupt!\n")
@@ -139,6 +158,6 @@ if __name__ == '__main__':
     torch.save(model.state_dict(), os.path.join(args.out_path, "final.pth"))
 
 
-# python3 perfect_classifier.py --data_path '/home/user1/Datasets/CatsAndDogs/trainset' --out_path '/home/user1/test/cnd1'
-# python perfect_classifier.py --data_path '/home/voletivi/scratch/catsndogs/data/PetImages' --out_path '/home/voletivi/scratch/catsndogs/experiments/cnd_PetImages_1'
-# python perfect_classifier.py --data_path '/home/voletivi/scratch/catsndogs/data/kaggle/trainset' --out_path '/home/voletivi/scratch/catsndogs/experiments/cnd_kaggle_1'
+# python3 perfect_classifier.py --data_path '/home/user1/Datasets/CatsAndDogs/trainset' --out_path '/home/user1/CnD_experiments/cnd_PerfectC_kaggle_1'
+# python perfect_classifier.py --data_path '/home/voletivi/scratch/catsndogs/data/PetImages' --out_path '/home/voletivi/scratch/catsndogs/experiments/cnd_PerfectC_PetImages_1'
+# python perfect_classifier.py --data_path '/home/voletivi/scratch/catsndogs/data/kaggle/trainset' --out_path '/home/voletivi/scratch/catsndogs/experiments/cnd_PerfectC_kaggle_1'

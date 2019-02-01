@@ -15,7 +15,7 @@ def get_params():
                         help='Path to data : Directory out: a/b/exp1 (-> a/b/<TIME>_exp1)')
 
     # Training params
-    parser.add_argument('--batch-size', type=int, default=64, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=128, metavar='N',
                         help='input batch size for training (default: 64)')
     parser.add_argument('--valid-split', type=float, default=0.1, help='Ratio of train-val split (e.g. 0.2)')
     parser.add_argument('--epochs', type=int, default=100, metavar='N',

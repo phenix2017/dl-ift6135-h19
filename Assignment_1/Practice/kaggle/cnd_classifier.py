@@ -43,37 +43,51 @@ class CnDClassifier(nn.Module):
         return nn.LogSoftmax(dim=1)(x)
 
 
-def train(args, model, train_loader, optimizer, epoch, start_time,
-          train_accuracy, train_losses, valid_accuracy, valid_losses):
+def train(args, model, train_loader, optimizer, epoch, start_time, log_file,
+          train_losses, train_accuracy, valid_losses, valid_accuracy):
+
     model.train()
+
     for batch_idx, (data, target) in enumerate(train_loader):
+
         # Get data
         data, target = data.to(args.device), target.to(args.device)
+
         # Get model output
         optimizer.zero_grad()
         output = model(data)
+
         # Calc loss
         loss = nn.NLLLoss()(output, target)
+
         # Backprop
         loss.backward()
         optimizer.step()
+
         # Log, Plot
         if batch_idx % args.log_interval == 0:
+
             # Check loss, accuracy
             train_losses.append(loss.item())
             pred = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
             train_accuracy.append(pred.eq(target.view_as(pred)).sum().item()/len(pred))
+
             # Get time elapsed
             curr_time = time.time()
             curr_time_str = datetime.datetime.fromtimestamp(curr_time).strftime('%Y-%m-%d %H:%M:%S')
             elapsed = utils.get_time_elapsed_str(curr_time - start_time)
+
             # Log
-            print('[{}] : Elapsed [{}]: Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tAccuracy: {:.4f}'.format(
+            log = '[{}] : Elapsed [{}]: Epoch: {} [{}/{} ({:.0f}%)]\tTRAIN Loss: {:.6f}\tAccuracy: {:.4f}'.format(
                 curr_time_str, elapsed, epoch, batch_idx, len(train_loader), 100.*batch_idx/len(train_loader),
-                train_losses[-1], train_accuracy[-1]))
+                train_losses[-1], train_accuracy[-1])
+            print(log)
+            log_file.write(log)
+            log_file.flush()
             utils.mem_check()
             utils.make_plots(train_losses, train_accuracy, args.log_interval, len(train_loader), args.out_path,
                              valid_losses, valid_accuracy)
+
         # Save models
         if batch_idx % args.model_save_interval == 0:
             model_name = os.path.join(args.out_path, 'model_epoch_{:04d}_batch_{:05d}_of_{:05d}.pth'.format(epoch, batch_idx, len(train_loader)))
@@ -81,7 +95,7 @@ def train(args, model, train_loader, optimizer, epoch, start_time,
             torch.save(model.state_dict(), model_name)
 
 
-def test(args, model, test_loader,
+def test(args, model, test_loader, epoch, start_time, log_file,
          train_losses, train_accuracy, valid_losses, valid_accuracy):
     model.eval()
     test_loss = 0
@@ -100,11 +114,21 @@ def test(args, model, test_loader,
     valid_losses.append(test_loss)
     valid_accuracy.append(test_accuracy)
 
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {:.4f} ({}/{})\n'.format(
-          test_loss, test_accuracy, correct, int(len(test_loader.dataset)*args.valid_split)))
+    # Get time elapsed
+    curr_time = time.time()
+    curr_time_str = datetime.datetime.fromtimestamp(curr_time).strftime('%Y-%m-%d %H:%M:%S')
+    elapsed = utils.get_time_elapsed_str(curr_time - start_time)
+
+    log = '\n[{}] : Elapsed [{}] : Epoch {}:\tVALIDATION Loss: {:.4f}, Accuracy: {:.4f} ({}/{})\n'.format(
+          curr_time_str, elapsed, epoch,
+          test_loss, test_accuracy, correct, int(len(test_loader.dataset)*args.valid_split))
+    print(log)
+    log_file.write(log)
+    log_file.flush()
 
     utils.make_plots(train_losses, train_accuracy, args.log_interval, len(train_loader), args.out_path,
                      valid_losses, valid_accuracy)
+
 
 if __name__ == '__main__':
 
@@ -148,14 +172,29 @@ if __name__ == '__main__':
     print("Starting training...")
     start_time = time.time()
 
+    # Log file
+    log_file_name = os.path.join(args.out_path, 'log.txt')
+    log_file = open(log_file_name, "wt")
+
     try:
+
         train_losses, train_accuracy = [], []
         valid_losses, valid_accuracy = [], []
-        test(args, model, valid_loader, train_losses, train_accuracy, valid_losses, valid_accuracy)
+
+        # Test before training
+        test(args, model, valid_loader, 0, start_time, log_file,
+            train_losses, train_accuracy, valid_losses, valid_accuracy)
+
         for epoch in range(1, args.epochs + 1):
-            train(args, model, train_loader, optimizer, epoch, start_time,
+
+            # Train
+            train(args, model, train_loader, optimizer, epoch, start_time, log_file,
                   train_losses, train_accuracy, valid_losses, valid_accuracy)
-            test(args, model, valid_loader, train_losses, train_accuracy, valid_losses, valid_accuracy)
+
+            # Validate
+            test(args, model, valid_loader, epoch, start_time, log_file,
+                 train_losses, train_accuracy, valid_losses, valid_accuracy)
+
     except KeyboardInterrupt:
         print("\nKeyboardInterrupt!\n")
 
@@ -164,5 +203,5 @@ if __name__ == '__main__':
     torch.save(model.state_dict(), os.path.join(args.out_path, "final.pth"))
 
 
-# python3 cnd_classifier.py --data_path '/home/user1/Datasets/CatsAndDogs/trainset' --out_path '/home/user1/test/cnd2'
+# python3 cnd_classifier.py --data_path '/home/user1/Datasets/CatsAndDogs/trainset' --out_path '/home/user1/CnD_experiments/cnd2'
 # python cnd_classifier.py --data_path '/home/voletivi/scratch/catsndogs/data/kaggle/trainset' --out_path '/home/voletivi/scratch/catsndogs/experiments/cnd_kaggle_1'
