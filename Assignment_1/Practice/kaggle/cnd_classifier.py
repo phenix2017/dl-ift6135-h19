@@ -17,25 +17,25 @@ class CnDClassifier(nn.Module):
 
     def __init__(self, state_dict_path=None):
         super(CnDClassifier, self).__init__()
-        self.conv1 = nn.Conv2d(3, 32, 3, 1, 1)
-        self.conv2 = nn.Conv2d(32, 64, 3, 1, 1)
-        self.conv3 = nn.Conv2d(64, 128, 3, 1, 1)
-        self.x_shape = [0, 128, 8, 8]
-        self.linear_dim = 512
+        self.conv1 = nn.Conv2d(3, 8, 3, 1, 1)
+        self.conv2 = nn.Conv2d(32, 16, 3, 1, 1)
+        # self.conv3 = nn.Conv2d(64, 128, 3, 1, 1)
+        self.x_shape = [0, 16, 16, 16]
+        self.linear_dim = 16
         self.fc1 = nn.Linear(self.x_shape[1]*self.x_shape[2]*self.x_shape[3], self.linear_dim)
         self.fc2 = nn.Linear(self.linear_dim, 2)
 
     def forward(self, x):
         # bx3x64x64
-        x = self.conv1(x)   # bx32x64x64
+        x = self.conv1(x)   # bx8x64x64
         x = nn.ReLU()(x)
-        x = nn.MaxPool2d(2, 2)(x)   # bx32x32x32
-        x = self.conv2(x)   # bx64x32x32
+        x = nn.MaxPool2d(2, 2)(x)   # bx8x32x32
+        x = self.conv2(x)   # bx16x32x32
         x = nn.ReLU()(x)
-        x = nn.MaxPool2d(2, 2)(x)   # bx64x16x16
-        x = self.conv3(x)   # bx128x16x16
-        x = nn.ReLU()(x)
-        x = nn.MaxPool2d(2, 2)(x)   # bx128x8x8
+        x = nn.MaxPool2d(2, 2)(x)   # bx16x16x16
+        # x = self.conv3(x)   # bx128x16x16
+        # x = nn.ReLU()(x)
+        # x = nn.MaxPool2d(2, 2)(x)   # bx128x8x8
         x = x.view(-1, self.x_shape[1]*self.x_shape[2]*self.x_shape[3])     # bx128*8*8
         x = self.fc1(x)     # bx512
         x = nn.ReLU()(x)
