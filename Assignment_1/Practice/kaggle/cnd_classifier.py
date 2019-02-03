@@ -169,7 +169,7 @@ def eval(args, model, eval_loader):
     ids = [ids[i] for i in sort_order]
 
     # Sort preds and make labels
-    labels = eval_loader.dataset.classes
+    labels = ['Cat', 'Dog']
     pred_labels = [labels[preds[i]] for i in sort_order]
 
     # Write csv
