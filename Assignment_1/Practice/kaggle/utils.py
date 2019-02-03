@@ -28,8 +28,8 @@ def check_for_CUDA(args):
     args.kwargs = {'num_workers':4, 'pin_memory':True} if args.use_cuda else {}
 
 
-def copy_scripts(dst):
-    for file in glob.glob('*.py'):
+def copy_scripts(dst, src='.'):
+    for file in glob.glob(os.path.join(src, '*.py')):
         shutil.copy(file, dst)
 
 
@@ -38,21 +38,41 @@ def get_time_elapsed_str(time_diff):
     return str(delta - datetime.timedelta(microseconds=delta.microseconds))
 
 
-def make_transform(resize=False, imsize=64, centercrop=False, centercrop_size=128,
-                   tanh_scale=True, normalize=False, norm_mean=(0.5, 0.5, 0.5), norm_std=(0.5, 0.5, 0.5)):
-        options = []
-        if resize:
-            options.append(transforms.Resize((imsize, imsize)))
-        if centercrop:
-            options.append(transforms.CenterCrop(centercrop_size))
-        options.append(transforms.ToTensor())
-        if tanh_scale:
-            f = lambda x: x*2 - 1
-            options.append(transforms.Lambda(f))
-        if normalize:
-            options.append(transforms.Normalize(norm_mean, norm_std))
-        transform = transforms.Compose(options)
-        return transform
+def make_transform(eval=False, imsize=64):
+    f = lambda x: x*2 - 1
+    options = []
+    if 'eval':
+        transform = transforms.Compose([
+            transforms.RandomResizedCrop(imsize, scale=(0.08, 1.0), ratio=(1, 1)),
+            transforms.RandomHorizontalFlip(),
+            # transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.3),
+            # transforms.RandomAffine(5, translate=(.2, .2), scale=(.8, 1.2), shear=1),
+            transforms.ToTensor(),
+            transforms.Lambda(f)
+        ])
+    else:
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Lambda(f)
+        ])
+    return transform
+
+
+# def make_transform(resize=False, imsize=64, centercrop=False, centercrop_size=128,
+#                    tanh_scale=True, normalize=False, norm_mean=(0.5, 0.5, 0.5), norm_std=(0.5, 0.5, 0.5)):
+#         options = []
+#         if resize:
+#             options.append(transforms.Resize((imsize, imsize)))
+#         if centercrop:
+#             options.append(transforms.CenterCrop(centercrop_size))
+#         options.append(transforms.ToTensor())
+#         if tanh_scale:
+#             f = lambda x: x*2 - 1
+#             options.append(transforms.Lambda(f))
+#         if normalize:
+#             options.append(transforms.Normalize(norm_mean, norm_std))
+#         transform = transforms.Compose(options)
+#         return transform
 
 
 def write_config_to_file(config, save_path):
@@ -63,7 +83,8 @@ def write_config_to_file(config, save_path):
 
 def make_dataloader(args):
     # Make transforms
-    transform = make_transform(args.resize, args.imsize, args.centercrop, args.centercrop_size, args.tanh_scale, args.normalize)
+    # transform = make_transform(args.resize, args.imsize, args.centercrop, args.centercrop_size, args.tanh_scale, args.normalize)
+    transform = make_transform(args.eval, args.imsize)
     # Make dataset
     assert os.path.exists(args.data_path), "data_path does not exist! Given: " + args.data_path
     # If no split
@@ -110,13 +131,16 @@ def make_plots(train_losses, train_accuracy, log_interval, train_iters_per_epoch
     plt.legend()
     plt.title("Loss")
     plt.xlabel("Epochs")
+    plt.grid()
     plt.subplot(212)
+    plt.plot(train_iters, 0.5*np.ones(train_iters.shape), 'k--', alpha=0.5)
     plt.plot(train_iters, train_accuracy, label='Train Acc')
     plt.plot(valid_iters, valid_accuracy, label='Valid Acc')
     plt.legend()
     plt.ylim([0, 1])
     plt.title("Accuracy")
     plt.xlabel("Epochs")
+    plt.grid()
     plt.savefig(os.path.join(save_path, "plots.png"), bbox_inches='tight', pad_inches=0.5)
     plt.clf()
     plt.close()

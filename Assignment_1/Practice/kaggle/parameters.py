@@ -27,7 +27,7 @@ def get_params():
     parser.add_argument('--epochs', type=int, default=100, metavar='N',
                         help='number of epochs to train (default: 10)')
     parser.add_argument('--lr', type=float, default=0.1, metavar='LR',
-                        help='learning rate (default: 0.01)')
+                        help='learning rate (default: 0.1)')
 
     # CUDA
     parser.add_argument('--no-cuda', action='store_true', default=False,

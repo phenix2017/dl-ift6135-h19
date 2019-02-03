@@ -13,17 +13,25 @@ import time
 
 import utils
 
+from torch.nn.init import xavier_uniform_
+
 from parameters import get_params
+
+
+def init_weights(m):
+    if type(m) == nn.Linear or type(m) == nn.Conv2d:
+        xavier_uniform_(m.weight)
+        m.bias.data.fill_(0.)
 
 
 class CnDClassifier(nn.Module):
 
     def __init__(self, state_dict_path=''):
         super(CnDClassifier, self).__init__()
-        self.conv1 = nn.Conv2d(3, 8, 3, 1, 1)
-        self.conv2 = nn.Conv2d(8, 16, 3, 1, 1)
-        # self.conv3 = nn.Conv2d(64, 128, 3, 1, 1)
-        self.x_shape = [0, 16, 16, 16]
+        self.conv1 = nn.Conv2d(3, 16, 3, 1, 1)
+        self.conv2 = nn.Conv2d(16, 32, 3, 1, 1)
+        self.conv3 = nn.Conv2d(32, 64, 3, 1, 1)
+        self.x_shape = [0, 64, 8, 8]
         self.linear_dim = 16
         self.fc1 = nn.Linear(self.x_shape[1]*self.x_shape[2]*self.x_shape[3], self.linear_dim)
         self.fc2 = nn.Linear(self.linear_dim, 2)
@@ -34,18 +42,20 @@ class CnDClassifier(nn.Module):
                 print("Loading", state_dict_path)
             # Load pretrained model
             self.load_state_dict(torch.load(state_dict_path))
+        else:
+            self.apply(init_weights)
 
     def forward(self, x):
         # bx3x64x64
-        x = self.conv1(x)   # bx8x64x64
+        x = self.conv1(x)   # bx16x64x64
         x = nn.ReLU()(x)
-        x = nn.MaxPool2d(2, 2)(x)   # bx8x32x32
-        x = self.conv2(x)   # bx16x32x32
+        x = nn.MaxPool2d(2, 2)(x)   # bx16x32x32
+        x = self.conv2(x)   # bx32x32x32
         x = nn.ReLU()(x)
-        x = nn.MaxPool2d(2, 2)(x)   # bx16x16x16
-        # x = self.conv3(x)   # bx128x16x16
-        # x = nn.ReLU()(x)
-        # x = nn.MaxPool2d(2, 2)(x)   # bx128x8x8
+        x = nn.MaxPool2d(2, 2)(x)   # bx32x16x16
+        x = self.conv3(x)   # bx64x16x16
+        x = nn.ReLU()(x)
+        x = nn.MaxPool2d(2, 2)(x)   # bx64x8x8
         x = x.view(-1, self.x_shape[1]*self.x_shape[2]*self.x_shape[3])     # bx128*8*8
         x = self.fc1(x)     # bx512
         x = nn.ReLU()(x)
@@ -193,6 +203,7 @@ if __name__ == '__main__':
 
     # Get all parameters
     args = get_params()
+    args.command = 'python ' + ' '.join(sys.argv)
 
     # CUDA
     utils.check_for_CUDA(args)
@@ -202,6 +213,7 @@ if __name__ == '__main__':
         pth_dir_name = os.path.dirname(args.pth)
         model = torch.load(os.path.join(pth_dir_name, 'model.pth'))
         model.load_state_dict(torch.load(args.pth))
+        model = model.to(args.device)
         args.valid_split = 0
         args.centercrop = False
         args.shuffle = False
@@ -238,7 +250,23 @@ if __name__ == '__main__':
     # MODEL
 
     torch.manual_seed(args.seed)
-    model = CnDClassifier().to(args.device)
+    if args.pth != '':
+        pth_dir_name = os.path.dirname(args.pth)
+        full_model_pth = os.path.join(pth_dir_name, 'model.pth')
+        if os.path.exists(full_model_pth):
+            print("Loading", full_model_pth)
+            model = torch.load(full_model_pth)
+            print("Loading pretrained state_dict", args.pth)
+            model.load_state_dict(torch.load(args.pth))
+            model = model.to(args.device)
+        else:
+            model = CnDClassifier()
+            print("Loading pretrained state_dict", args.pth)
+            model.load_state_dict(torch.load(args.pth))
+            model = model.to(args.device)
+    else:
+        model = CnDClassifier().to(args.device)
+
     optimizer = optim.SGD(model.parameters(), lr=args.lr)
 
     # TRAIN
