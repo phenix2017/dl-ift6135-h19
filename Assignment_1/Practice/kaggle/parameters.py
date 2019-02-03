@@ -14,6 +14,10 @@ def get_params():
     parser.add_argument('--out_path', type=str,
                         help='Path to data : Directory out: a/b/exp1 (-> a/b/<TIME>_exp1)')
 
+    # Choose model
+    parser.add_argument('--model', type=str, default='baseline', choices=['baseline', 'big'],
+                        help='Which model to use among baseline and big')
+
     # Evaluate
     parser.add_argument('--eval', action='store_true', default=False,
                         help='enables ONLY eval mode, preferably with pth')
@@ -28,6 +32,8 @@ def get_params():
                         help='number of epochs to train (default: 10)')
     parser.add_argument('--lr', type=float, default=0.1, metavar='LR',
                         help='learning rate (default: 0.1)')
+    parser.add_argument('--early_stopping', action='store_true', help='To activate early stopping')
+    parser.add_argument('--patience', type=int, default=10, help='# of epochs to wait before stopping (default: 10)')
 
     # CUDA
     parser.add_argument('--no-cuda', action='store_true', default=False,

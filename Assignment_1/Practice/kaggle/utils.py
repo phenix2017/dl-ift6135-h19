@@ -144,3 +144,20 @@ def make_plots(train_losses, train_accuracy, log_interval, train_iters_per_epoch
     plt.savefig(os.path.join(save_path, "plots.png"), bbox_inches='tight', pad_inches=0.5)
     plt.clf()
     plt.close()
+
+
+def imshow(inp, title=None):
+    # del sys.modules['matplotlib']
+    # import matplotlib
+    # matplotlib.use('TkAgg')
+    import matplotlib.pyplot as plt
+    """Imshow for Tensor."""
+    inp = inp.numpy().transpose((1, 2, 0))
+    mean = np.array([0.485, 0.456, 0.406])
+    std = np.array([0.229, 0.224, 0.225])
+    inp = std * inp + mean
+    inp = np.clip(inp, 0, 1)
+    plt.imshow(inp)
+    if title is not None:
+        plt.title(title)
+    plt.pause(0)  # pause a bit so that plots are updated
