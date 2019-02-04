@@ -67,15 +67,17 @@ def test(args, model, test_loader, epoch, start_time, log_file,
     test_loss = 0
     correct = 0
     with torch.no_grad():
+        counter = 0
         for data, target in test_loader:
             data, target = data.to(args.device), target.to(args.device)
             output = model(data)
             test_loss += nn.NLLLoss(reduction='sum')(output, target).item() # sum up batch loss
             pred = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
+            counter += len(pred)
             correct += pred.eq(target.view_as(pred)).sum().item()
 
-    test_loss /= len(test_loader.dataset)*args.valid_split
-    test_accuracy = correct/int(len(test_loader.dataset)*args.valid_split)
+    test_loss /= counter
+    test_accuracy = correct/counter
 
     valid_epochs.append(epoch)
     valid_losses.append(test_loss)
@@ -87,7 +89,7 @@ def test(args, model, test_loader, epoch, start_time, log_file,
 
     log = '\n[{}] : Elapsed [{}] : Epoch {}:\tVALIDATION Loss: {:.4f}, Accuracy: {:.4f} ({}/{})\n'.format(
           curr_time_str, elapsed_str, epoch,
-          test_loss, test_accuracy, correct, int(len(test_loader.dataset)*args.valid_split))
+          test_loss, test_accuracy, correct, counter)
     print(log)
     log_file.write(log)
     log_file.flush()

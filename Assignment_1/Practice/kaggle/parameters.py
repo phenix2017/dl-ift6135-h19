@@ -18,7 +18,7 @@ def get_params():
 
     # Choose model
     parser.add_argument('--model', type=str, default='baseline', choices=['baseline', 'big', 'TinyImageNet'],
-                        help='Which model to use among baseline and big')
+                        help='Which model to use among baseline, big, TinyImageNet')
 
     # Evaluate
     parser.add_argument('--eval', action='store_true', default=False,
