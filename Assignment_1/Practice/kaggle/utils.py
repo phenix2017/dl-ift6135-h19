@@ -33,9 +33,11 @@ def copy_scripts(dst, src='.'):
         shutil.copy(file, dst)
 
 
-def get_time_elapsed_str(time_diff):
-    delta = datetime.timedelta(seconds=time_diff)
-    return str(delta - datetime.timedelta(microseconds=delta.microseconds))
+def get_time_str(start_time, curr_time):
+    curr_time_str = datetime.datetime.fromtimestamp(curr_time).strftime('%Y-%m-%d %H:%M:%S')
+    delta = datetime.timedelta(seconds=(curr_time - start_time))
+    delta_str = str(delta - datetime.timedelta(microseconds=delta.microseconds))
+    return curr_time_str, delta_str
 
 
 def make_transform(eval=False, imsize=64):
@@ -119,13 +121,11 @@ def make_dataloader(args):
         return train_loader, valid_loader
 
 
-def make_plots(train_losses, train_accuracy, log_interval, train_iters_per_epoch, save_path,
-               valid_losses, valid_accuracy, init_epoch=0):
-    train_iters = np.arange(len(train_losses))*log_interval/train_iters_per_epoch + init_epoch
-    valid_iters = np.arange(len(valid_losses)) + init_epoch
+def make_plots(save_path, train_iters, train_losses, train_accuracy,
+               valid_iters, valid_losses, valid_accuracy, init_epoch=0):
     fig = plt.figure(figsize=(10, 20))
     plt.subplot(211)
-    plt.plot(train_iters, np.zeros(train_iters.shape), 'k--', alpha=0.5)
+    plt.plot(train_iters, np.zeros((len(train_iters))), 'k--', alpha=0.5)
     plt.plot(train_iters, train_losses, label='Train Loss')
     plt.plot(valid_iters, valid_losses, label='Valid Loss')
     plt.legend()
@@ -133,7 +133,7 @@ def make_plots(train_losses, train_accuracy, log_interval, train_iters_per_epoch
     plt.xlabel("Epochs")
     plt.grid()
     plt.subplot(212)
-    plt.plot(train_iters, 0.5*np.ones(train_iters.shape), 'k--', alpha=0.5)
+    plt.plot(train_iters, 0.5*np.ones((len(train_iters))), 'k--', alpha=0.5)
     plt.plot(train_iters, train_accuracy, label='Train Acc')
     plt.plot(valid_iters, valid_accuracy, label='Valid Acc')
     plt.legend()

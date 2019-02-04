@@ -45,7 +45,7 @@ class CnDClassifier(nn.Module):
         x = nn.ReLU()(x)
         x = nn.MaxPool2d(2, 2)(x)   # bx64x8x8
         x = x.view(-1, self.x_shape[1]*self.x_shape[2]*self.x_shape[3])     # bx128*8*8
-        x = self.fc1(x)     # bx512
+        x = self.fc1(x)     # bx16
         x = nn.ReLU()(x)
         x = self.fc2(x)     # bx2
         return nn.LogSoftmax(dim=1)(x)
@@ -57,12 +57,12 @@ class CnDBigClassifier(nn.Module):
     def __init__(self, state_dict_path=''):
         super(CnDBigClassifier, self).__init__()
         self.conv1 = nn.Conv2d(3, 16, 3, 1, 0)
-        self.conv2 = nn.Conv2d(16, 32, 3, 1, 1)
-        self.conv3 = nn.Conv2d(32, 64, 3, 1, 1)
-        self.conv4 = nn.Conv2d(64, 128, 3, 1, 1)
-        self.conv5 = nn.Conv2d(128, 256, 3, 1, 1)
+        self.conv2 = nn.Conv2d(16, 32, 3, 1, 0)
+        self.conv3 = nn.Conv2d(32, 64, 3, 1, 0)
+        self.conv4 = nn.Conv2d(64, 128, 3, 1, 0)
+        self.conv5 = nn.Conv2d(128, 256, 3, 1, 0)
         self.x_shape = [0, 256, 2, 2]
-        self.linear_dim = 64
+        self.linear_dim = 128
         self.fc1 = nn.Linear(self.x_shape[1]*self.x_shape[2]*self.x_shape[3], self.linear_dim)
         self.fc2 = nn.Linear(self.linear_dim, 2)
 

@@ -59,7 +59,10 @@ if __name__ == '__main__':
             model.load_state_dict(torch.load(args.pth))
             model = model.to(args.device)
     else:
-        model = CnDBigClassifier().to(args.device)
+        if args.model == 'baseline':
+            model = CnDClassifier().to(args.device)
+        elif args.model == 'big':
+            model = CnDBigClassifier().to(args.device)
 
     optimizer = optim.SGD(model.parameters(), lr=args.lr)
 
@@ -78,12 +81,12 @@ if __name__ == '__main__':
 
     try:
 
-        train_losses, train_accuracy = [], []
-        valid_losses, valid_accuracy = [], []
+        train_epochs, train_losses, train_accuracy = [], [], []
+        valid_epochs, valid_losses, valid_accuracy = [], [], []
 
         # Test before training
         test(args, model, valid_loader, 0, start_time, log_file,
-            train_losses, train_accuracy, valid_losses, valid_accuracy)
+             train_epochs, train_losses, train_accuracy, valid_epochs, valid_losses, valid_accuracy)
 
         # Early stopping
         if args.early_stopping:
@@ -99,11 +102,11 @@ if __name__ == '__main__':
 
                 # Train
                 train(args, model, train_loader, optimizer, epoch, start_time, log_file,
-                      train_losses, train_accuracy, valid_losses, valid_accuracy)
+                      train_epochs, train_losses, train_accuracy, valid_epochs, valid_losses, valid_accuracy)
 
                 # Validate
                 test(args, model, valid_loader, epoch, start_time, log_file,
-                     train_losses, train_accuracy, valid_losses, valid_accuracy)
+                     train_epochs, train_losses, train_accuracy, valid_epochs, valid_losses, valid_accuracy)
 
                 # Early stopping
                 if args.early_stopping:
