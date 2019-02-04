@@ -17,7 +17,7 @@ def get_params():
                         help='Path to validation data : Images Folder')
 
     # Choose model
-    parser.add_argument('--model', type=str, default='baseline', choices=['baseline', 'big'],
+    parser.add_argument('--model', type=str, default='baseline', choices=['baseline', 'big', 'TinyImageNet'],
                         help='Which model to use among baseline and big')
 
     # Evaluate
@@ -30,10 +30,12 @@ def get_params():
     parser.add_argument('--batch-size', type=int, default=128, metavar='N',
                         help='input batch size for training (default: 128)')
     parser.add_argument('--valid-split', type=float, default=0.1, help='Ratio of train-val split (e.g. 0.2)')
-    parser.add_argument('--epochs', type=int, default=100, metavar='N',
-                        help='number of epochs to train (default: 10)')
+    parser.add_argument('--epochs', type=int, default=1000,
+                        help='number of epochs to train (default: 1000)')
     parser.add_argument('--lr', type=float, default=0.1, metavar='LR',
                         help='learning rate (default: 0.1)')
+
+    # Early Stopping
     parser.add_argument('--early_stopping', action='store_true', help='To activate early stopping')
     parser.add_argument('--patience', type=int, default=10, help='# of epochs to wait before stopping (default: 10)')
 
@@ -45,9 +47,9 @@ def get_params():
                         help='random seed (default: 1)')
 
     # Intervals
-    parser.add_argument('--log-interval', type=int, default=10, metavar='N',
+    parser.add_argument('--log-interval', type=int, default=10,
                         help='how many batches to wait before logging training status')
-    parser.add_argument('--model-save-interval', type=int, default=100, metavar='N',
+    parser.add_argument('--model-save-interval', type=int, default=100,
                         help='how many batches to wait before saving model')
 
     # Image transforms

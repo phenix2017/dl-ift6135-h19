@@ -63,6 +63,8 @@ if __name__ == '__main__':
             model = CnDClassifier().to(args.device)
         elif args.model == 'big':
             model = CnDBigClassifier().to(args.device)
+        elif args.model == 'TinyImageNet':
+            model = TinyImageNetClassifier().to(args.device)
 
     optimizer = optim.SGD(model.parameters(), lr=args.lr)
 
