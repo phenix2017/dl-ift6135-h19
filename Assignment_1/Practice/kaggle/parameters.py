@@ -13,6 +13,8 @@ def get_params():
                         help='Path to data : Images Folder')
     parser.add_argument('--out_path', type=str,
                         help='Path to data : Directory out: a/b/exp1 (-> a/b/<TIME>_exp1)')
+    parser.add_argument('--val_data_path', type=str, default='',
+                        help='Path to validation data : Images Folder')
 
     # Choose model
     parser.add_argument('--model', type=str, default='baseline', choices=['baseline', 'big'],

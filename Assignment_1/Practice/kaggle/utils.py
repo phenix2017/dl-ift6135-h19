@@ -89,15 +89,25 @@ def make_dataloader(args):
     transform = make_transform(args.eval, args.imsize)
     # Make dataset
     assert os.path.exists(args.data_path), "data_path does not exist! Given: " + args.data_path
+
     # If no split
-    if args.valid_split == 0:
+    if args.valid_split == 0 or args.val_data_path != '':
         dataset = dset.ImageFolder(root=args.data_path, transform=transform)
-        args.num_of_classes = sum([1 if os.path.isdir(os.path.join(args.data_path, i)) else 0 for i in os.listdir(args.data_path)])
+        args.num_of_classes = len(dataset.classes)
         print("Data found! # of classes =", args.num_of_classes, ", # of images =", len(dataset))
         print("Classes:", dataset.classes)
         torch.manual_seed(args.seed)
         dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=args.shuffle, drop_last=args.drop_last, **args.kwargs)
-        return dataloader
+        if args.val_data_path == '':
+            return dataloader
+        else:
+            val_dataset = dset.ImageFolder(root=args.val_data_path, transform=make_transform(eval=True, imsize=args.imsize))
+            print("Val Data found! # of classes =", len(val_dataset.classes), ", # of images =", len(val_dataset))
+            print("Classes:", val_dataset.classes)
+            torch.manual_seed(args.seed)
+            val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=args.shuffle, drop_last=args.drop_last, **args.kwargs)
+            return dataloader, val_dataloader
+
     # If data needs to be split into Train and Val
     else:
         # https://gist.github.com/kevinzakka/d33bf8d6c7f06a9d8c76d97a7879f5cb
