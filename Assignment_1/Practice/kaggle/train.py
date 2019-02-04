@@ -115,10 +115,12 @@ if __name__ == '__main__':
                     if valid_losses[-1] > best_val_loss:
                         early_stopping_counter += 1
                         if early_stopping_counter == args.patience:
+                            print("Early stopping! Resuming with half LR...")
                             best_val_loss = np.inf
                             early_stopping_counter = 0
                             epoch_start = epoch + 1
                             args.lr /= 2
+                            print("New LR:", args.lr)
                             optimizer = optim.SGD(model.parameters(), lr=args.lr)
                             break
                     else:

@@ -47,9 +47,9 @@ def get_params():
                         help='random seed (default: 1)')
 
     # Intervals
-    parser.add_argument('--log-interval', type=int, default=10,
+    parser.add_argument('--log-interval', type=int, default=100,
                         help='how many batches to wait before logging training status')
-    parser.add_argument('--model-save-interval', type=int, default=100,
+    parser.add_argument('--model-save-interval', type=int, default=500,
                         help='how many batches to wait before saving model')
 
     # Image transforms
