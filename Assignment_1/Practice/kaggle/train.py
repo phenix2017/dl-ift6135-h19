@@ -115,11 +115,12 @@ if __name__ == '__main__':
                     if valid_losses[-1] > best_val_loss:
                         early_stopping_counter += 1
                         if early_stopping_counter == args.patience:
+                            best_val_loss = np.inf
                             early_stopping_counter = 0
                             epoch_start = epoch + 1
                             args.lr /= 2
                             optimizer = optim.SGD(model.parameters(), lr=args.lr)
-                        break
+                            break
                     else:
                         best_val_loss = valid_losses[-1]
                         early_stopping_counter = 0
