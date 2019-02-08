@@ -65,6 +65,10 @@ if __name__ == '__main__':
             model = CnDBigClassifier().to(args.device)
         elif args.model == 'TinyImageNet':
             model = TinyImageNetClassifier().to(args.device)
+        elif args.model == 'transfer':
+            pth_dir_name = os.path.dirname(args.transfer)
+            full_model_pth = os.path.join(pth_dir_name, 'model.pth')
+            model = TransferModel(full_model_pth, args.transfer, args.freeze).to(args.device)
 
     optimizer = optim.SGD(model.parameters(), lr=args.lr)
 

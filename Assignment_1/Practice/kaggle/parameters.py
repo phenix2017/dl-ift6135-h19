@@ -17,8 +17,14 @@ def get_params():
                         help='Path to validation data : Images Folder')
 
     # Choose model
-    parser.add_argument('--model', type=str, default='baseline', choices=['baseline', 'big', 'TinyImageNet'],
-                        help='Which model to use among baseline, big, TinyImageNet')
+    parser.add_argument('--model', type=str, default='baseline', choices=['baseline', 'big', 'TinyImageNet', 'transfer'],
+                        help='Which model to use among baseline, big, TinyImageNet, transfer')
+
+    # Transfer from larger model and finetune
+    # => '--model transfer'
+    parser.add_argument('--transfer', type=str,
+                        help='Path to larger pretrained model to transfer weights of early layers from. It is assumed that same dir also has model.pth to load full model from.')
+    parser.add_argument('--freeze', action='store_true', help="Freeze pretrained layers before funetuning")
 
     # Evaluate
     parser.add_argument('--eval', action='store_true', default=False,

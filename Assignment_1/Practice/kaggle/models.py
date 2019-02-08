@@ -144,3 +144,42 @@ class TinyImageNetClassifier(nn.Module):
         x = nn.ReLU()(x)
         x = self.fc3(x)     # bx200
         return nn.LogSoftmax(dim=1)(x)
+
+
+class TransferModel(nn.Module):
+
+    def __init__(self, model_pth, model_weights_pth='', freeze_pt=False, device='cpu'):
+        super(TransferModel, self).__init__()
+
+        # Load model
+        assert os.path.exists(model_pth)
+        self.pt_model = torch.load(model_pth)
+        if model_weights_pth != '':
+            assert os.path.exists(model_weights_pth)
+            self.pt_model.load_state_dict(torch.load(model_weights_pth))
+
+        self.pt_model.to(device)
+
+        # Freeze
+        print("Freezing pretrained model params:", freeze_pt)
+        for param in self.pt_model.parameters():
+                param.requires_grad = False if freeze_pt else True
+
+        # Cut off last layer
+        self.pt_modulelist = list(self.pt_model.modules())[1:-1]
+        self.pt_out_features = self.pt_modulelist[-1].out_features
+
+        # Add a layer with 2 neurons (for Cat and Dog)
+        self.fc1 = nn.Linear(self.pt_out_features, 2)
+
+    def forward(self, x):
+        # Run through pretrained model
+        # till penultimate layer
+        for module in self.pt_modulelist:
+            x = module(x)
+
+        # Run through FC layer
+        x = self.fc1(x)
+
+        # Return output
+        return nn.LogSoftmax(dim=1)(x)
