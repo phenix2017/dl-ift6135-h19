@@ -32,7 +32,7 @@ def train(args, model, train_loader, optimizer, epoch, start_time, log_file,
         optimizer.step()
 
         # Log, Plot
-        if batch_idx % args.log_interval == 0:
+        if (epoch*len(train_loader) + batch_idx) % args.log_interval == 0:
 
             # Check loss, accuracy
             train_epochs.append(epoch + batch_idx/len(train_loader))
@@ -55,7 +55,7 @@ def train(args, model, train_loader, optimizer, epoch, start_time, log_file,
             utils.make_plots(args.out_path, train_epochs, train_losses, train_accuracy, valid_epochs, valid_losses, valid_accuracy, lr_change)
 
         # Save models
-        if batch_idx % args.model_save_interval == 0:
+        if (epoch*len(train_loader) + batch_idx) % args.model_save_interval == 0:
             model_name = os.path.join(args.out_path, 'model_epoch_{:04d}_batch_{:05d}_of_{:05d}.pth'.format(epoch, batch_idx, len(train_loader)))
             print("Saving model", model_name)
             torch.save(model.state_dict(), model_name)
