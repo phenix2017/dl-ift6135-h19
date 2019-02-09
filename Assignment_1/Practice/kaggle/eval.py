@@ -1,4 +1,5 @@
 import os
+import sys
 import torch
 
 import utils
@@ -38,3 +39,6 @@ if __name__ == '__main__':
 
     # Evaluate
     eval(args, model, eval_loader)
+
+# EVAL
+# python eval.py --pth '/home/voletiv/EXPERIMENTS/CnD_experiments/20190208_223808_cnd_kaggle_pt_UNfreeze_ES/model_epoch_0136_batch_00000_of_00141.pth' --data_path '/home/voletiv/Datasets/CatsAndDogs/testset' --out_path '/home/voletiv/EXPERIMENTS/CnD_experiments/20190208_223808_cnd_kaggle_pt_UNfreeze_ES/' --no-cuda

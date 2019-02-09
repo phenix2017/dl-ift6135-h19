@@ -69,6 +69,8 @@ if __name__ == '__main__':
             pth_dir_name = os.path.dirname(args.transfer)
             full_model_pth = os.path.join(pth_dir_name, 'model.pth')
             model = TransferModel(full_model_pth, args.transfer, args.freeze).to(args.device)
+        elif args.model == 'skip':
+            model = CnDSkipClassifier().to(args.device)
 
     optimizer = optim.SGD(model.parameters(), lr=args.lr)
 
@@ -89,10 +91,11 @@ if __name__ == '__main__':
 
         train_epochs, train_losses, train_accuracy = [], [], []
         valid_epochs, valid_losses, valid_accuracy = [], [], []
+        lr_change = []
 
         # Test before training
         test(args, model, valid_loader, 0, start_time, log_file,
-             train_epochs, train_losses, train_accuracy, valid_epochs, valid_losses, valid_accuracy)
+             train_epochs, train_losses, train_accuracy, valid_epochs, valid_losses, valid_accuracy, lr_change)
 
         # Early stopping
         if args.early_stopping:
@@ -108,11 +111,11 @@ if __name__ == '__main__':
 
                 # Train
                 train(args, model, train_loader, optimizer, epoch, start_time, log_file,
-                      train_epochs, train_losses, train_accuracy, valid_epochs, valid_losses, valid_accuracy)
+                      train_epochs, train_losses, train_accuracy, valid_epochs, valid_losses, valid_accuracy, lr_change)
 
                 # Validate
                 test(args, model, valid_loader, epoch, start_time, log_file,
-                     train_epochs, train_losses, train_accuracy, valid_epochs, valid_losses, valid_accuracy)
+                     train_epochs, train_losses, train_accuracy, valid_epochs, valid_losses, valid_accuracy, lr_change)
 
                 # Early stopping
                 if args.early_stopping:
@@ -120,6 +123,7 @@ if __name__ == '__main__':
                         early_stopping_counter += 1
                         if early_stopping_counter == args.patience:
                             print("Early stopping! Resuming with half LR...")
+                            lr_change.append(epoch)
                             best_val_loss = np.inf
                             early_stopping_counter = 0
                             epoch_start = epoch + 1
@@ -149,6 +153,3 @@ if __name__ == '__main__':
 
 # Tiny ImageNet
 # python train.py --data_path '/home/voletivi/scratch/catsndogs/data/TinyImageNet/tiny-imagenet-200/train' --val_data_path '/home/voletivi/scratch/catsndogs/data/TinyImageNet/tiny-imagenet-200/val' --out_path '/home/voletivi/scratch/catsndogs/experiments/pretrain_TinyImageNet' --model 'big'
-
-# EVAL
-# python3 cnd_classifier.py --eval --pth '/home/user1/CnD_experiments/20190201_014519_cnd_kaggle_smllerFC_1/model_epoch_0016_batch_00100_of_00141.pth' --data_path '/home/user1/Datasets/CatsAndDogs/testset' --out_path '/home/user1/CnD_experiments/20190201_014519_cnd_kaggle_smllerFC_1'

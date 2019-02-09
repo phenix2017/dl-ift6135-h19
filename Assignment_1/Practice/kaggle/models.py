@@ -99,8 +99,11 @@ class CnDBigClassifier(nn.Module):
 
 class TinyImageNetClassifier(nn.Module):
 
-    def __init__(self, state_dict_path=''):
+    def __init__(self, state_dict_path='', freeze_pt=False, keep_last=True):
         super(TinyImageNetClassifier, self).__init__()
+
+        self.keep_last = keep_last
+
         self.conv1 = nn.Conv2d(3, 16, 3, 1, 0)
         self.conv2 = nn.Conv2d(16, 32, 3, 1, 0)
         self.conv3 = nn.Conv2d(32, 64, 3, 1, 0)
@@ -119,8 +122,14 @@ class TinyImageNetClassifier(nn.Module):
                 print("Loading", state_dict_path)
             # Load pretrained model
             self.load_state_dict(torch.load(state_dict_path))
+            self.to('cpu')
         else:
             self.apply(init_weights)
+
+        # Freeze
+        print("Freezing pretrained model params:", freeze_pt)
+        for param in self.parameters():
+            param.requires_grad = False if freeze_pt else True
 
     def forward(self, x):
         # bx3x64x64
@@ -142,6 +151,10 @@ class TinyImageNetClassifier(nn.Module):
         x = nn.ReLU()(x)
         x = self.fc2(x)     # bx256
         x = nn.ReLU()(x)
+
+        if not self.keep_last:
+            return x
+
         x = self.fc3(x)     # bx200
         return nn.LogSoftmax(dim=1)(x)
 
@@ -172,14 +185,97 @@ class TransferModel(nn.Module):
         # Add a layer with 2 neurons (for Cat and Dog)
         self.fc1 = nn.Linear(self.pt_out_features, 2)
 
+        self.x_shape = [0, 256, 2, 2]
+
     def forward(self, x):
         # Run through pretrained model
         # till penultimate layer
-        for module in self.pt_modulelist:
-            x = module(x)
+        # import pdb; pdb.set_trace()
+        # bx3x64x64
+        x = self.pt_modulelist[0](x)   # bx16x62x62
+        x = nn.ReLU()(x)
+        x = nn.MaxPool2d(2, 2)(x)   # bx16x31x31
+        x = self.pt_modulelist[1](x)   # bx32x29x29
+        x = nn.ReLU()(x)
+        x = nn.MaxPool2d(2, 2)(x)   # bx32x14x14
+        x = self.pt_modulelist[2](x)   # bx64x12x12
+        x = nn.ReLU()(x)
+        x = nn.MaxPool2d(2, 2)(x)   # bx64x6x6
+        x = self.pt_modulelist[3](x)   # bx128x4x4
+        x = nn.ReLU()(x)
+        x = self.pt_modulelist[4](x)   # bx256x2x2
+        x = nn.ReLU()(x)
+        x = x.view(-1, self.x_shape[1]*self.x_shape[2]*self.x_shape[3])     # bx256*2*2
+        x = self.pt_modulelist[5](x)     # bx512
+        x = nn.ReLU()(x)
+        x = self.pt_modulelist[6](x)     # bx256
+        x = nn.ReLU()(x)
 
         # Run through FC layer
         x = self.fc1(x)
 
         # Return output
+        return nn.LogSoftmax(dim=1)(x)
+
+
+class CnDSkipClassifier(nn.Module):
+
+    def __init__(self, state_dict_path=''):
+        super(CnDSkipClassifier, self).__init__()
+        self.conv1 = nn.Conv2d(3, 64, 3, 1, 1)
+        self.conv2 = nn.Conv2d(64, 64, 3, 1, 1)
+        self.conv3 = nn.Conv2d(64, 128, 3, 1, 1)
+        self.conv4 = nn.Conv2d(128, 128, 3, 1, 1)
+        self.conv5 = nn.Conv2d(128, 256, 3, 1, 1)
+        self.conv6 = nn.Conv2d(256, 256, 3, 1, 1)
+        self.conv7 = nn.Conv2d(256, 512, 3, 1, 1)
+        self.conv8 = nn.Conv2d(512, 512, 3, 1, 1)
+        self.x_shape = [0, 512, 4, 4]
+        self.linear_dim = 512
+        self.fc1 = nn.Linear(self.x_shape[1]*self.x_shape[2]*self.x_shape[3], self.linear_dim)
+        self.fc2 = nn.Linear(self.linear_dim, 2)
+
+        if state_dict_path != '':
+            # Check
+            if os.path.exists(state_dict_path):
+                print("Loading", state_dict_path)
+            # Load pretrained model
+            self.load_state_dict(torch.load(state_dict_path))
+        else:
+            self.apply(init_weights)
+
+    def forward(self, x):
+        # bx3x64x64
+        x1 = x
+        # 1
+        x = self.conv1(x)   # bx32x64x64
+        x = nn.ReLU()(x)
+        x = self.conv2(x)   # bx32x64x64
+        x = nn.ReLU()(x)
+        x = nn.MaxPool2d(2, 2)(x)   # bx32x32x32
+        # 2
+        x = self.conv3(x)   # bx64x32x32
+        x = nn.ReLU()(x)
+        x = self.conv4(x)   # bx64x32x32
+        x = nn.ReLU()(x)
+        x = nn.MaxPool2d(2, 2)(x)   # bx64x16x16
+        # 3
+        x = self.conv5(x)   # bx128x16x16
+        x = nn.ReLU()(x)
+        x = self.conv6(x)   # bx128x16x16
+        x = nn.ReLU()(x)
+        x = nn.MaxPool2d(2, 2)(x)   # bx128x8x8
+        # 4
+        x = self.conv7(x)   # bx256x8x8
+        x = nn.ReLU()(x)
+        x = self.conv8(x)   # bx256x8x8
+        x = nn.ReLU()(x)
+        x = nn.MaxPool2d(2, 2)(x)   # bx256x4x4
+        # Reshape
+        x = x.view(-1, self.x_shape[1]*self.x_shape[2]*self.x_shape[3])     # bx256*4*4
+        # Fc1
+        x = self.fc1(x)     # bx256
+        x = nn.ReLU()(x)
+        # Fc2
+        x = self.fc2(x)     # bx2
         return nn.LogSoftmax(dim=1)(x)

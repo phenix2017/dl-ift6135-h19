@@ -11,7 +11,7 @@ import utils
 
 
 def train(args, model, train_loader, optimizer, epoch, start_time, log_file,
-          train_epochs, train_losses, train_accuracy, valid_epochs, valid_losses, valid_accuracy):
+          train_epochs, train_losses, train_accuracy, valid_epochs, valid_losses, valid_accuracy, lr_change):
 
     model.train()
 
@@ -52,7 +52,7 @@ def train(args, model, train_loader, optimizer, epoch, start_time, log_file,
             log_file.write(log)
             log_file.flush()
             utils.mem_check()
-            utils.make_plots(args.out_path, train_epochs, train_losses, train_accuracy, valid_epochs, valid_losses, valid_accuracy)
+            utils.make_plots(args.out_path, train_epochs, train_losses, train_accuracy, valid_epochs, valid_losses, valid_accuracy, lr_change)
 
         # Save models
         if batch_idx % args.model_save_interval == 0:
@@ -62,7 +62,7 @@ def train(args, model, train_loader, optimizer, epoch, start_time, log_file,
 
 
 def test(args, model, test_loader, epoch, start_time, log_file,
-         train_epochs, train_losses, train_accuracy, valid_epochs, valid_losses, valid_accuracy):
+         train_epochs, train_losses, train_accuracy, valid_epochs, valid_losses, valid_accuracy, lr_change):
     model.eval()
     test_loss = 0
     correct = 0
@@ -94,7 +94,7 @@ def test(args, model, test_loader, epoch, start_time, log_file,
     log_file.write(log)
     log_file.flush()
 
-    utils.make_plots(args.out_path, train_epochs, train_losses, train_accuracy, valid_epochs, valid_losses, valid_accuracy)
+    utils.make_plots(args.out_path, train_epochs, train_losses, train_accuracy, valid_epochs, valid_losses, valid_accuracy, lr_change)
 
 
 def eval(args, model, eval_loader):

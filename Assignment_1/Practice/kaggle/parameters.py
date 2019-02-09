@@ -17,8 +17,8 @@ def get_params():
                         help='Path to validation data : Images Folder')
 
     # Choose model
-    parser.add_argument('--model', type=str, default='baseline', choices=['baseline', 'big', 'TinyImageNet', 'transfer'],
-                        help='Which model to use among baseline, big, TinyImageNet, transfer')
+    parser.add_argument('--model', type=str, default='baseline', choices=['baseline', 'big', 'TinyImageNet', 'transfer', 'skip'],
+                        help='Which model to use among baseline, big, TinyImageNet, transfer, skip')
 
     # Transfer from larger model and finetune
     # => '--model transfer'
@@ -43,7 +43,7 @@ def get_params():
 
     # Early Stopping
     parser.add_argument('--early_stopping', action='store_true', help='To activate early stopping')
-    parser.add_argument('--patience', type=int, default=10, help='# of epochs to wait before stopping (default: 10)')
+    parser.add_argument('--patience', type=int, default=5, help='# of epochs to wait before stopping (default: 5)')
 
     # CUDA
     parser.add_argument('--no-cuda', action='store_true', default=False,

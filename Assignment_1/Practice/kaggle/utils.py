@@ -45,10 +45,10 @@ def make_transform(eval=False, imsize=64):
     options = []
     if 'eval':
         transform = transforms.Compose([
-            transforms.RandomResizedCrop(imsize, scale=(0.08, 1.0), ratio=(1, 1)),
+            transforms.RandomResizedCrop(imsize, scale=(0.8, 1.0), ratio=(1, 1)),
             transforms.RandomHorizontalFlip(),
-            # transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.3),
-            # transforms.RandomAffine(5, translate=(.2, .2), scale=(.8, 1.2), shear=1),
+            transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.3),
+            transforms.RandomAffine(10, translate=(.2, .2), scale=(.8, 1.2), shear=1),
             transforms.ToTensor(),
             transforms.Lambda(f)
         ])
@@ -132,12 +132,14 @@ def make_dataloader(args):
 
 
 def make_plots(save_path, train_iters, train_losses, train_accuracy,
-               valid_iters, valid_losses, valid_accuracy, init_epoch=0):
+               valid_iters, valid_losses, valid_accuracy, lr_change=[], init_epoch=0):
     fig = plt.figure(figsize=(10, 20))
     plt.subplot(211)
     plt.plot(train_iters, np.zeros((len(train_iters))), 'k--', alpha=0.5)
     plt.plot(train_iters, train_losses, label='Train Loss')
     plt.plot(valid_iters, valid_losses, label='Valid Loss')
+    for x in lr_change:
+        plt.axvline(x=x, linestyle='--', color='k')
     plt.legend()
     plt.title("Loss")
     plt.xlabel("Epochs")
@@ -146,6 +148,8 @@ def make_plots(save_path, train_iters, train_losses, train_accuracy,
     plt.plot(train_iters, 0.5*np.ones((len(train_iters))), 'k--', alpha=0.5)
     plt.plot(train_iters, train_accuracy, label='Train Acc')
     plt.plot(valid_iters, valid_accuracy, label='Valid Acc')
+    for x in lr_change:
+        plt.axvline(x=x, linestyle='--', color='k')
     plt.legend()
     plt.ylim([0, 1])
     plt.title("Accuracy")
