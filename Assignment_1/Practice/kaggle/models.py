@@ -226,17 +226,28 @@ class CnDSkipClassifier(nn.Module):
         self.conv2 = nn.Conv2d(64, 64, 3, 1, 1)
         self.conv3 = nn.Conv2d(64, 128, 3, 1, 1)
         self.conv4 = nn.Conv2d(128, 128, 3, 1, 1)
-        self.conv1d1 = nn.Conv2d(64, 128, 1, 2, 0)
-        self.conv5 = nn.Conv2d(128, 256, 3, 1, 1)
-        self.conv6 = nn.Conv2d(256, 256, 3, 1, 1)
-        self.conv1d2 = nn.Conv2d(128, 256, 1, 2, 0)
-        self.conv7 = nn.Conv2d(256, 512, 3, 1, 1)
-        self.conv8 = nn.Conv2d(512, 512, 3, 1, 1)
-        self.conv1d3 = nn.Conv2d(256, 512, 1, 2, 0)
-        self.x_shape = [0, 512, 4, 4]
-        self.linear_dim = 512
-        self.fc1 = nn.Linear(self.x_shape[1]*self.x_shape[2]*self.x_shape[3], self.linear_dim)
-        self.fc2 = nn.Linear(self.linear_dim, 2)
+        self.conv1d1 = nn.Conv2d(64, 128, 1, 1, 0)
+        self.conv5 = nn.Conv2d(128, 128, 3, 1, 1)
+        self.conv6 = nn.Conv2d(128, 128, 3, 1, 1)
+        self.conv1d2 = nn.Conv2d(128, 128, 1, 2, 0)
+        self.conv7 = nn.Conv2d(128, 256, 3, 1, 1)
+        self.conv8 = nn.Conv2d(256, 256, 3, 1, 1)
+        self.conv1d3 = nn.Conv2d(128, 256, 1, 1, 0)
+        self.conv9 = nn.Conv2d(256, 256, 3, 1, 1)
+        self.conv10 = nn.Conv2d(256, 256, 3, 1, 1)
+        self.conv1d4 = nn.Conv2d(256, 256, 1, 2, 0)
+        self.conv11 = nn.Conv2d(256, 512, 3, 1, 1)
+        self.conv12 = nn.Conv2d(512, 512, 3, 1, 1)
+        self.conv1d5 = nn.Conv2d(256, 512, 1, 1, 0)
+        self.conv13 = nn.Conv2d(512, 512, 3, 1, 1)
+        self.conv14 = nn.Conv2d(512, 512, 3, 1, 1)
+        self.conv1d6 = nn.Conv2d(512, 512, 1, 2, 0)
+        self.x_shape = [0, 512, 8, 8]
+        self.linear_dim1 = 512
+        self.linear_dim2 = 256
+        self.fc1 = nn.Linear(self.x_shape[1]*self.x_shape[2]*self.x_shape[3], self.linear_dim1)
+        self.fc2 = nn.Linear(self.linear_dim1, self.linear_dim2)
+        self.fc3 = nn.Linear(self.linear_dim2, 2)
 
         if state_dict_path != '':
             # Check
@@ -254,36 +265,59 @@ class CnDSkipClassifier(nn.Module):
         x = nn.ReLU()(x)
         x = self.conv2(x)   # bx64x64x64
         x = nn.ReLU()(x)
-        x = nn.MaxPool2d(2, 2)(x)   # bx64x32x32
         # 2
         x1 = x
-        x = self.conv3(x)   # bx128x32x32
+        x = self.conv3(x)   # bx128x64x64
         x = nn.ReLU()(x)
-        x = self.conv4(x)   # bx128x32x32
+        x = self.conv4(x)   # bx128x64x64
         x = nn.ReLU()(x)
-        x = nn.MaxPool2d(2, 2)(x)   # bx128x16x16
         x += self.conv1d1(x1)
         # 3
         x1 = x
-        x = self.conv5(x)   # bx256x16x16
+        x = self.conv5(x)   # bx128x64x64
         x = nn.ReLU()(x)
-        x = self.conv6(x)   # bx256x16x16
+        x = self.conv6(x)   # bx128x64x64
         x = nn.ReLU()(x)
-        x = nn.MaxPool2d(2, 2)(x)   # bx256x8x8
+        x = nn.MaxPool2d(2, 2)(x)   # bx128x32x32
         x += self.conv1d2(x1)
         # 4
         x1 = x
-        x = self.conv7(x)   # bx512x8x8
+        x = self.conv7(x)   # bx256x32x32
         x = nn.ReLU()(x)
-        x = self.conv8(x)   # bx512x8x8
+        x = self.conv8(x)   # bx256x32x32
         x = nn.ReLU()(x)
-        x = nn.MaxPool2d(2, 2)(x)   # bx512x4x4
         x += self.conv1d3(x1)
+        # 5
+        x1 = x
+        x = self.conv9(x)   # bx256x32x32
+        x = nn.ReLU()(x)
+        x = self.conv10(x)   # bx256x32x32
+        x = nn.ReLU()(x)
+        x = nn.MaxPool2d(2, 2)(x)   # bx256x16x16
+        x += self.conv1d4(x1)
+        # 6
+        x1 = x
+        x = self.conv11(x)   # bx512x16x16
+        x = nn.ReLU()(x)
+        x = self.conv12(x)   # bx512x16x16
+        x = nn.ReLU()(x)
+        x += self.conv1d5(x1)
+        # 7
+        x1 = x
+        x = self.conv13(x)   # bx512x16x16
+        x = nn.ReLU()(x)
+        x = self.conv14(x)   # bx512x16x16
+        x = nn.ReLU()(x)
+        x = nn.MaxPool2d(2, 2)(x)   # bx512x8x8
+        x += self.conv1d6(x1)
         # Reshape
-        x = x.view(-1, self.x_shape[1]*self.x_shape[2]*self.x_shape[3])     # bx256*4*4
+        x = x.view(-1, self.x_shape[1]*self.x_shape[2]*self.x_shape[3])     # bx512*8*8
         # Fc1
         x = self.fc1(x)     # bx512
         x = nn.ReLU()(x)
         # Fc2
-        x = self.fc2(x)     # bx2
+        x = self.fc2(x)     # bx256
+        x = nn.ReLU()(x)
+        # Fc3
+        x = self.fc3(x)     # bx2
         return nn.LogSoftmax(dim=1)(x)
