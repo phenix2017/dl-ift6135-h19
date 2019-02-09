@@ -145,11 +145,11 @@ if __name__ == '__main__':
 
 # TRAIN
 # # Mila
-# python3 cnd_classifier.py --data_path '/home/user1/Datasets/CatsAndDogs/trainset' --out_path '/home/user1/CnD_experiments/cnd2'
+# python3 train.py --data_path '/home/user1/Datasets/CatsAndDogs/trainset' --out_path '/home/user1/CnD_experiments/cnd2'
 # # CC
-# python cnd_classifier.py --data_path '/home/voletivi/scratch/catsndogs/data/kaggle/trainset' --out_path '/home/voletivi/scratch/catsndogs/experiments/cnd_kaggle_1'
+# python train.py --data_path '/home/voletivi/scratch/catsndogs/data/kaggle/trainset' --out_path '/home/voletivi/scratch/catsndogs/experiments/cnd_kaggle_1'
 # # Dell
-# python cnd_classifier.py --data_path '/home/voletiv/Datasets/CatsAndDogs/trainset' --out_path '/home/voletiv/EXPERIMENTS/CnD_experiments/cnd_kaggle_C16C32C64Fc16_XInit_DataAugLesser_LR0.5_cont1' --pth ''
+# python train.py --data_path '/home/voletiv/Datasets/CatsAndDogs/trainset' --out_path '/home/voletiv/EXPERIMENTS/CnD_experiments/cnd_kaggle_C16C32C64Fc16_XInit_DataAugLesser_LR0.5_cont1' --pth ''
 
 # Tiny ImageNet
 # python train.py --data_path '/home/voletivi/scratch/catsndogs/data/TinyImageNet/tiny-imagenet-200/train' --val_data_path '/home/voletivi/scratch/catsndogs/data/TinyImageNet/tiny-imagenet-200/val' --out_path '/home/voletivi/scratch/catsndogs/experiments/pretrain_TinyImageNet' --model 'big'
