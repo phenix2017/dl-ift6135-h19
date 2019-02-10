@@ -45,7 +45,7 @@ def make_transform(eval=False, imsize=64):
     options = []
     if 'eval':
         transform = transforms.Compose([
-            transforms.RandomResizedCrop(imsize, scale=(0.08, 1.0), ratio=(1, 1)),
+            transforms.RandomResizedCrop(imsize, scale=(0.8, 1.0), ratio=(1, 1)),
             transforms.RandomHorizontalFlip(),
             transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.3),
             transforms.RandomAffine(10, translate=(.2, .2), scale=(.8, 1.2), shear=1),

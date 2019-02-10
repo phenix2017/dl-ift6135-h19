@@ -325,10 +325,10 @@ class CnDSkipClassifier(nn.Module):
 
 class BN(nn.Module):
 
-    def __init__(self, x_shape):
+    def __init__(self, x_shape, device):
         super(BN, self).__init__()
-        self.bn_bias = torch.zeros((1, x_shape[1], x_shape[2], x_shape[3]), requires_grad=True)
-        self.bn_std = torch.ones((1, x_shape[1], x_shape[2], x_shape[3]), requires_grad=True)
+        self.bn_bias = torch.zeros((1, x_shape[1], x_shape[2], x_shape[3]), requires_grad=True).to(device)
+        self.bn_std = torch.ones((1, x_shape[1], x_shape[2], x_shape[3]), requires_grad=True).to(device)
 
     def train(self):
         self.bn_bias.requires_grad = True
@@ -347,7 +347,7 @@ class BN(nn.Module):
 
 class CnDBNSkipClassifier(nn.Module):
 
-    def __init__(self, bn=True, skip=True, state_dict_path=''):
+    def __init__(self, bn=True, skip=True, device='cpu', state_dict_path=''):
         super(CnDBNSkipClassifier, self).__init__()
 
         self.bn = bn
@@ -369,20 +369,20 @@ class CnDBNSkipClassifier(nn.Module):
         self.conv14 = nn.Conv2d(512, 512, 3, 1, 1)
 
         if self.bn:
-            self.bn1 = BN((0, 64, 64, 64))
-            self.bn2 = BN((0, 64, 64, 64))
-            self.bn3 = BN((0, 128, 64, 64))
-            self.bn4 = BN((0, 128, 64, 64))
-            self.bn5 = BN((0, 128, 64, 64))
-            self.bn6 = BN((0, 128, 64, 64))
-            self.bn7 = BN((0, 256, 32, 32))
-            self.bn8 = BN((0, 256, 32, 32))
-            self.bn9 = BN((0, 256, 32, 32))
-            self.bn10 = BN((0, 256, 32, 32))
-            self.bn11 = BN((0, 512, 16, 16))
-            self.bn12 = BN((0, 512, 16, 16))
-            self.bn13 = BN((0, 512, 16, 16))
-            self.bn14 = BN((0, 512, 16, 16))
+            self.bn1 = BN((0, 64, 64, 64), device)
+            self.bn2 = BN((0, 64, 64, 64), device)
+            self.bn3 = BN((0, 128, 64, 64), device)
+            self.bn4 = BN((0, 128, 64, 64), device)
+            self.bn5 = BN((0, 128, 64, 64), device)
+            self.bn6 = BN((0, 128, 64, 64), device)
+            self.bn7 = BN((0, 256, 32, 32), device)
+            self.bn8 = BN((0, 256, 32, 32), device)
+            self.bn9 = BN((0, 256, 32, 32), device)
+            self.bn10 = BN((0, 256, 32, 32), device)
+            self.bn11 = BN((0, 512, 16, 16), device)
+            self.bn12 = BN((0, 512, 16, 16), device)
+            self.bn13 = BN((0, 512, 16, 16), device)
+            self.bn14 = BN((0, 512, 16, 16), device)
             self.bn_list = [self.bn1, self.bn2, self.bn3, self.bn4, self.bn5, self.bn6, self.bn7, self.bn8, self.bn9, self.bn10, self.bn11, self.bn12, self.bn13, self.bn14]
 
         if self.skip:
