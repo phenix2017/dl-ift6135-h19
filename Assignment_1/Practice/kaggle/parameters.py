@@ -76,8 +76,8 @@ def get_params():
 
     args = parser.parse_args()
 
-    ars.bn = not args.no_bn
-    ars.skip = not args.no_skip
+    args.bn = not args.no_bn
+    args.skip = not args.no_skip
 
     args.shuffle = not args.dont_shuffle
     args.drop_last = not args.dont_drop_last

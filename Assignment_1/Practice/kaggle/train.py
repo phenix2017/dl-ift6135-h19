@@ -149,7 +149,7 @@ if __name__ == '__main__':
 # # Mila
 # python3 train.py --data_path '/home/user1/Datasets/CatsAndDogs/trainset' --out_path '/home/user1/CnD_experiments/cnd2'
 # # CC
-# python train.py --data_path '/home/voletivi/scratch/catsndogs/data/kaggle/trainset' --out_path '/home/voletivi/scratch/catsndogs/experiments/cnd_kaggle_1'
+# python train.py --data_path '/home/voletivi/scratch/catsndogs/data/kaggle/trainset' --out_path '/home/voletivi/scratch/catsndogs/experiments/cnd_kaggle_BIG' --model 'bn_skip' --no_bn --no_skip --early_stopping
 # # Dell
 # python train.py --data_path '/home/voletiv/Datasets/CatsAndDogs/trainset' --out_path '/home/voletiv/EXPERIMENTS/CnD_experiments/cnd_kaggle_C16C32C64Fc16_XInit_DataAugLesser_LR0.5_cont1' --pth ''
 
