@@ -86,12 +86,12 @@ def write_config_to_file(config, save_path):
 def make_dataloader(args):
     # Make transforms
     # transform = make_transform(args.resize, args.imsize, args.centercrop, args.centercrop_size, args.tanh_scale, args.normalize)
-    transform = make_transform(args.eval, args.imsize)
     # Make dataset
     assert os.path.exists(args.data_path), "data_path does not exist! Given: " + args.data_path
 
     # If no split
     if args.valid_split == 0 or args.val_data_path != '':
+        transform = make_transform(args.eval, args.imsize)
         dataset = dset.ImageFolder(root=args.data_path, transform=transform)
         args.num_of_classes = len(dataset.classes)
         print("Data found! # of classes =", args.num_of_classes, ", # of images =", len(dataset))
@@ -111,8 +111,10 @@ def make_dataloader(args):
     # If data needs to be split into Train and Val
     else:
         # https://gist.github.com/kevinzakka/d33bf8d6c7f06a9d8c76d97a7879f5cb
-        train_dataset = dset.ImageFolder(root=args.data_path, transform=transform)
-        valid_dataset = dset.ImageFolder(root=args.data_path, transform=transform)
+        train_transform = make_transform(args.eval, args.imsize)
+        train_dataset = dset.ImageFolder(root=args.data_path, transform=train_transform)
+        val_transform = make_transform(True, args.imsize)
+        valid_dataset = dset.ImageFolder(root=args.data_path, transform=val_transform)
         num_train = len(train_dataset)
         indices = list(range(num_train))
         split = int(np.floor(args.valid_split * num_train))
