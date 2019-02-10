@@ -348,7 +348,7 @@ class BN(nn.Module):
 class CnDBNSkipClassifier(nn.Module):
 
     def __init__(self, bn=True, skip=True, state_dict_path=''):
-        super(CnDSkipClassifier, self).__init__()
+        super(CnDBNSkipClassifier, self).__init__()
 
         self.bn = bn
         self.skip = skip
