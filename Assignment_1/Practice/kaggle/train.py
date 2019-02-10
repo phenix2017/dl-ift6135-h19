@@ -71,6 +71,8 @@ if __name__ == '__main__':
             model = TransferModel(full_model_pth, args.transfer, args.freeze).to(args.device)
         elif args.model == 'skip':
             model = CnDSkipClassifier().to(args.device)
+        elif args.model == 'bn_skip':
+            model = CnDSkipClassifier(args.bn, args.skip).to(args.device)
 
     optimizer = optim.SGD(model.parameters(), lr=args.lr)
 

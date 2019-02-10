@@ -17,8 +17,12 @@ def get_params():
                         help='Path to validation data : Images Folder')
 
     # Choose model
-    parser.add_argument('--model', type=str, default='baseline', choices=['baseline', 'big', 'TinyImageNet', 'transfer', 'skip'],
-                        help='Which model to use among baseline, big, TinyImageNet, transfer, skip')
+    parser.add_argument('--model', type=str, default='baseline', choices=['baseline', 'big', 'TinyImageNet', 'transfer', 'skip', 'bn_skip'],
+                        help='Which model to use among baseline, big, TinyImageNet, transfer, skip, bn_skip')
+
+    # In case of bn_skip
+    parser.add_argument('--no_bn', action='store_true')
+    parser.add_argument('--no_skip', action='store_true')
 
     # Transfer from larger model and finetune
     # => '--model transfer'
@@ -71,6 +75,9 @@ def get_params():
     parser.add_argument('--normalize', action='store_true', help="Whether to normalize image values")
 
     args = parser.parse_args()
+
+    ars.bn = not args.no_bn
+    ars.skip = not args.no_skip
 
     args.shuffle = not args.dont_shuffle
     args.drop_last = not args.dont_drop_last
