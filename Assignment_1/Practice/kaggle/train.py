@@ -72,7 +72,7 @@ if __name__ == '__main__':
         elif args.model == 'skip':
             model = CnDSkipClassifier().to(args.device)
         elif args.model == 'bn_skip':
-            model = CnDSkipClassifier(args.bn, args.skip).to(args.device)
+            model = CnDBNSkipClassifier(args.bn, args.skip).to(args.device)
 
     optimizer = optim.SGD(model.parameters(), lr=args.lr)
 
