@@ -411,15 +411,15 @@ class CnDBNSkipClassifier(nn.Module):
         else:
             self.apply(init_weights)
 
-    def train(self):
-        if self.bn:
-            for bn_m in self.bn_list:
-                bn_m.train()
+    # def train(self):
+    #     if self.bn:
+    #         for bn_m in self.bn_list:
+    #             bn_m.train()
 
-    def eval(self):
-        if self.bn:
-            for bn_m in self.bn_list:
-                bn_m.eval()
+    # def eval(self):
+    #     if self.bn:
+    #         for bn_m in self.bn_list:
+    #             bn_m.eval()
 
     def forward(self, x):
         # bx3x64x64
