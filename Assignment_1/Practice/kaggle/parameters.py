@@ -3,7 +3,7 @@ import datetime
 import os
 
 
-def get_params():
+def get_params(eval_mode=False):
 
     # ARGS
     parser = argparse.ArgumentParser(description='PyTorch Cats & Dogs')
@@ -83,6 +83,9 @@ def get_params():
     args.drop_last = not args.dont_drop_last
     args.resize = not args.dont_resize
     args.tanh_scale = not args.dont_tanh_scale
+
+    if eval_mode == True:
+        args.eval = True
 
     if not args.eval:
         args.out_path = os.path.join(os.path.dirname(args.out_path),

@@ -11,8 +11,14 @@ from parameters import get_params
 if __name__ == '__main__':
 
     # Get all parameters
-    args = get_params()
+    args = get_params(eval_mode=True)
     args.command = 'python ' + ' '.join(sys.argv)
+    assert args.pth
+    assert os.path.exists(args.pth)
+    assert args.data_path
+    assert os.path.exists(args.data_path)
+    assert args.out_path
+    assert os.path.exists(args.out_path)
 
     # CUDA
     utils.check_for_CUDA(args)
@@ -41,4 +47,4 @@ if __name__ == '__main__':
     eval(args, model, eval_loader)
 
 # EVAL
-# python eval.py --pth '/home/voletiv/EXPERIMENTS/CnD_experiments/20190208_223808_cnd_kaggle_pt_UNfreeze_ES/model_epoch_0136_batch_00000_of_00141.pth' --data_path '/home/voletiv/Datasets/CatsAndDogs/testset' --out_path '/home/voletiv/EXPERIMENTS/CnD_experiments/20190208_223808_cnd_kaggle_pt_UNfreeze_ES/' --no-cuda
+# python eval.py --eval --pth '/home/voletiv/EXPERIMENTS/CnD_experiments/20190208_223808_cnd_kaggle_pt_UNfreeze_ES/model_epoch_0136_batch_00000_of_00141.pth' --data_path '/home/voletiv/Datasets/CatsAndDogs/testset' --out_path '/home/voletiv/EXPERIMENTS/CnD_experiments/20190208_223808_cnd_kaggle_pt_UNfreeze_ES/' --no-cuda
