@@ -46,6 +46,12 @@ def get_params(eval_mode=False):
                         help='number of epochs to train (default: 1000)')
     parser.add_argument('--lr', type=float, default=0.1, metavar='LR',
                         help='learning rate (default: 0.1)')
+    parser.add_argument('--exp_decay', action='store_true', default=False,
+                        help='exponential decay')
+    parser.add_argument('--exp_decay_rate', type=float, default=0.9,
+                        help='exponential decay (default: 0.9)')
+    parser.add_argument('--exp_decay_epochs', type=int, default=10,
+                        help='# of epochs after which to exponential decay (default: 10)')
 
     # Early Stopping
     parser.add_argument('--early_stopping', action='store_true', help='To activate early stopping')

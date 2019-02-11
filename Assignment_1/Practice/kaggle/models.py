@@ -355,49 +355,64 @@ class CnDBNSkipClassifier(nn.Module):
         self.bn = bn
         self.skip = skip
 
-        self.conv1 = nn.Conv2d(3, 64, 3, 1, 1)
-        self.conv2 = nn.Conv2d(64, 64, 3, 1, 1)
-        self.conv3 = nn.Conv2d(64, 128, 3, 1, 1)
+        # 1
+        self.conv1 = nn.Conv2d(3, 128, 3, 1, 1)
+        self.conv2 = nn.Conv2d(128, 128, 3, 1, 1)
+        # 2
+        self.conv3 = nn.Conv2d(128, 128, 3, 1, 1)
         self.conv4 = nn.Conv2d(128, 128, 3, 1, 1)
         self.conv5 = nn.Conv2d(128, 128, 3, 1, 1)
         self.conv6 = nn.Conv2d(128, 128, 3, 1, 1)
+        # 3
         self.conv7 = nn.Conv2d(128, 256, 3, 1, 1)
         self.conv8 = nn.Conv2d(256, 256, 3, 1, 1)
         self.conv9 = nn.Conv2d(256, 256, 3, 1, 1)
         self.conv10 = nn.Conv2d(256, 256, 3, 1, 1)
+        # 4
         self.conv11 = nn.Conv2d(256, 512, 3, 1, 1)
         self.conv12 = nn.Conv2d(512, 512, 3, 1, 1)
         self.conv13 = nn.Conv2d(512, 512, 3, 1, 1)
         self.conv14 = nn.Conv2d(512, 512, 3, 1, 1)
+        # 5
+        self.conv15 = nn.Conv2d(512, 1024, 3, 1, 1)
+        self.conv16 = nn.Conv2d(1024, 1024, 3, 1, 1)
+        self.conv17 = nn.Conv2d(1024, 1024, 3, 1, 1)
+        self.conv18 = nn.Conv2d(1024, 1024, 3, 1, 1)
 
         if self.bn:
-            self.bn1 = BN((0, 64, 64, 64), device)
-            self.bn2 = BN((0, 64, 64, 64), device)
+            # 1
+            self.bn1 = BN((0, 128, 64, 64), device)
+            self.bn2 = BN((0, 128, 64, 64), device)
+            # 2
             self.bn3 = BN((0, 128, 64, 64), device)
             self.bn4 = BN((0, 128, 64, 64), device)
             self.bn5 = BN((0, 128, 64, 64), device)
             self.bn6 = BN((0, 128, 64, 64), device)
+            # 3
             self.bn7 = BN((0, 256, 32, 32), device)
             self.bn8 = BN((0, 256, 32, 32), device)
             self.bn9 = BN((0, 256, 32, 32), device)
             self.bn10 = BN((0, 256, 32, 32), device)
+            # 4
             self.bn11 = BN((0, 512, 16, 16), device)
             self.bn12 = BN((0, 512, 16, 16), device)
             self.bn13 = BN((0, 512, 16, 16), device)
             self.bn14 = BN((0, 512, 16, 16), device)
-            self.bn_list = [self.bn1, self.bn2, self.bn3, self.bn4, self.bn5, self.bn6, self.bn7, self.bn8, self.bn9, self.bn10, self.bn11, self.bn12, self.bn13, self.bn14]
+            # 4
+            self.bn11 = BN((0, 1024, 8, 8), device)
+            self.bn12 = BN((0, 1024, 8, 8), device)
+            self.bn13 = BN((0, 1024, 8, 8), device)
+            self.bn14 = BN((0, 1024, 8, 8), device)
 
         if self.skip:
-            self.conv1d1 = nn.Conv2d(64, 128, 1, 1, 0)
-            self.conv1d2 = nn.Conv2d(128, 128, 1, 2, 0)
-            self.conv1d3 = nn.Conv2d(128, 256, 1, 1, 0)
-            self.conv1d4 = nn.Conv2d(256, 256, 1, 2, 0)
-            self.conv1d5 = nn.Conv2d(256, 512, 1, 1, 0)
-            self.conv1d6 = nn.Conv2d(512, 512, 1, 2, 0)
+            self.conv1d1 = nn.Conv2d(128, 128, 1, 1, 0)
+            self.conv1d2 = nn.Conv2d(128, 256, 1, 1, 0)
+            self.conv1d3 = nn.Conv2d(256, 512, 1, 1, 0)
+            self.conv1d4 = nn.Conv2d(512, 1024, 1, 1, 0)
 
-        self.x_shape = [0, 512, 8, 8]
-        self.linear_dim1 = 512
-        self.linear_dim2 = 256
+        self.x_shape = [0, 1024, 4, 4]
+        self.linear_dim1 = 1024
+        self.linear_dim2 = 512
         self.fc1 = nn.Linear(self.x_shape[1]*self.x_shape[2]*self.x_shape[3], self.linear_dim1)
         self.fc2 = nn.Linear(self.linear_dim1, self.linear_dim2)
         self.fc3 = nn.Linear(self.linear_dim2, 2)
@@ -424,11 +439,11 @@ class CnDBNSkipClassifier(nn.Module):
     def forward(self, x):
         # bx3x64x64
         # 1
-        x = self.conv1(x)   # bx64x64x64
+        x = self.conv1(x)   # bx128x64x64
         if self.bn:
             x = self.bn1(x)
         x = nn.ReLU()(x)
-        x = self.conv2(x)   # bx64x64x64
+        x = self.conv2(x)   # bx128x64x64
         if self.bn:
             x = self.bn2(x)
         x = nn.ReLU()(x)
@@ -443,10 +458,6 @@ class CnDBNSkipClassifier(nn.Module):
         if self.bn:
             x = self.bn4(x)
         x = nn.ReLU()(x)
-        if self.skip:
-            x += self.conv1d1(x1)
-            x1 = x
-        # 3
         x = self.conv5(x)   # bx128x64x64
         if self.bn:
             x = self.bn5(x)
@@ -457,9 +468,11 @@ class CnDBNSkipClassifier(nn.Module):
         x = nn.ReLU()(x)
         x = nn.MaxPool2d(2, 2)(x)   # bx128x32x32
         if self.skip:
-            x += self.conv1d2(x1)
+            x1 = self.conv1d1(x1)   # bx128x64x64
+            x1 = nn.MaxPool2d(2, 2)(x1) # bx128x32x32
+            x += x1
             x1 = x
-        # 4
+        # 3
         x = self.conv7(x)   # bx256x32x32
         if self.bn:
             x = self.bn7(x)
@@ -468,10 +481,6 @@ class CnDBNSkipClassifier(nn.Module):
         if self.bn:
             x = self.bn8(x)
         x = nn.ReLU()(x)
-        if self.skip:
-            x += self.conv1d3(x1)
-            x1 = x
-        # 5
         x = self.conv9(x)   # bx256x32x32
         if self.bn:
             x = self.bn9(x)
@@ -482,9 +491,11 @@ class CnDBNSkipClassifier(nn.Module):
         x = nn.ReLU()(x)
         x = nn.MaxPool2d(2, 2)(x)   # bx256x16x16
         if self.skip:
-            x += self.conv1d4(x1)
+            x1 = self.conv1d2(x1)   # bx256x32x32
+            x1 = nn.MaxPool2d(2, 2)(x1) # bx256x16x16
+            x += x1
             x1 = x
-        # 6
+        # 4
         x = self.conv11(x)   # bx512x16x16
         if self.bn:
             x = self.bn11(x)
@@ -493,10 +504,6 @@ class CnDBNSkipClassifier(nn.Module):
         if self.bn:
             x = self.bn12(x)
         x = nn.ReLU()(x)
-        if self.skip:
-            x += self.conv1d5(x1)
-            x1 = x
-        # 7
         x = self.conv13(x)   # bx512x16x16
         if self.bn:
             x = self.bn13(x)
@@ -507,14 +514,40 @@ class CnDBNSkipClassifier(nn.Module):
         x = nn.ReLU()(x)
         x = nn.MaxPool2d(2, 2)(x)   # bx512x8x8
         if self.skip:
-            x += self.conv1d6(x1)
+            x1 = self.conv1d3(x1)
+            x1 = nn.MaxPool2d(2, 2)(x1)
+            x += x1
+            x1 = x
+        # 5
+        x = self.conv15(x)   # b1024x8x8
+        if self.bn:
+            x = self.bn15(x)
+        x = nn.ReLU()(x)
+        x = self.conv16(x)   # bx1024x8x8
+        if self.bn:
+            x = self.bn16(x)
+        x = nn.ReLU()(x)
+        x = self.conv17(x)   # bx1024x8x8
+        if self.bn:
+            x = self.bn17(x)
+        x = nn.ReLU()(x)
+        x = self.conv18(x)   # bx1024x8x8
+        if self.bn:
+            x = self.bn18(x)
+        x = nn.ReLU()(x)
+        x = nn.MaxPool2d(2, 2)(x)   # bx1024x4x4
+        if self.skip:
+            x1 = self.conv1d4(x1)
+            x1 = nn.MaxPool2d(2, 2)(x1)
+            x += x1
+            x1 = x
         # Reshape
-        x = x.view(-1, self.x_shape[1]*self.x_shape[2]*self.x_shape[3])     # bx512*8*8
+        x = x.view(-1, self.x_shape[1]*self.x_shape[2]*self.x_shape[3])     # bx1024*4*4
         # Fc1
-        x = self.fc1(x)     # bx512
+        x = self.fc1(x)     # bx1024
         x = nn.ReLU()(x)
         # Fc2
-        x = self.fc2(x)     # bx256
+        x = self.fc2(x)     # bx512
         x = nn.ReLU()(x)
         # Fc3
         x = self.fc3(x)     # bx2

@@ -119,6 +119,12 @@ if __name__ == '__main__':
                 test(args, model, valid_loader, epoch, start_time, log_file,
                      train_epochs, train_losses, train_accuracy, valid_epochs, valid_losses, valid_accuracy, lr_change)
 
+                # Exponential decay
+                if args.exp_decay:
+                    if epoch % args.exp_decay_epochs == 0:
+                        args.lr *= args.exp_decay_rate
+                        lr_change.append(epoch)
+
                 # Early stopping
                 if args.early_stopping:
                     if valid_losses[-1] > best_val_loss:
