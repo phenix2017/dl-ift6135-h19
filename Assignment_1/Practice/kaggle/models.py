@@ -399,10 +399,10 @@ class CnDBNSkipClassifier(nn.Module):
             self.bn13 = BN((0, 512, 16, 16), device)
             self.bn14 = BN((0, 512, 16, 16), device)
             # 4
-            self.bn11 = BN((0, 1024, 8, 8), device)
-            self.bn12 = BN((0, 1024, 8, 8), device)
-            self.bn13 = BN((0, 1024, 8, 8), device)
-            self.bn14 = BN((0, 1024, 8, 8), device)
+            self.bn15 = BN((0, 1024, 8, 8), device)
+            self.bn16 = BN((0, 1024, 8, 8), device)
+            self.bn17 = BN((0, 1024, 8, 8), device)
+            self.bn18 = BN((0, 1024, 8, 8), device)
 
         if self.skip:
             self.conv1d1 = nn.Conv2d(128, 128, 1, 1, 0)

@@ -39,9 +39,9 @@ def get_params(eval_mode=False):
                         help='Path to pretrained model (e.g. model_epoch_0.pth)')
 
     # Training params
-    parser.add_argument('--batch-size', type=int, default=128, metavar='N',
+    parser.add_argument('--batch_size', type=int, default=128, metavar='N',
                         help='input batch size for training (default: 128)')
-    parser.add_argument('--valid-split', type=float, default=0.1, help='Ratio of train-val split (e.g. 0.2)')
+    parser.add_argument('--valid_split', type=float, default=0.1, help='Ratio of train-val split (e.g. 0.2)')
     parser.add_argument('--epochs', type=int, default=1000,
                         help='number of epochs to train (default: 1000)')
     parser.add_argument('--lr', type=float, default=0.1, metavar='LR',
@@ -58,16 +58,16 @@ def get_params(eval_mode=False):
     parser.add_argument('--patience', type=int, default=5, help='# of epochs to wait before stopping (default: 5)')
 
     # CUDA
-    parser.add_argument('--no-cuda', action='store_true', default=False,
+    parser.add_argument('--no_cuda', action='store_true', default=False,
                         help='disables CUDA training')
 
     parser.add_argument('--seed', type=int, default=29, metavar='S',
                         help='random seed (default: 1)')
 
     # Intervals
-    parser.add_argument('--log-interval', type=int, default=10,
+    parser.add_argument('--log_interval', type=int, default=10,
                         help='how many batches to wait before logging training status')
-    parser.add_argument('--model-save-interval', type=int, default=50,
+    parser.add_argument('--model_save_interval', type=int, default=50,
                         help='how many batches to wait before saving model')
 
     # Image transforms

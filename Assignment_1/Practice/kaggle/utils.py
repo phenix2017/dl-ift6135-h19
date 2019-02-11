@@ -40,15 +40,15 @@ def get_time_str(start_time, curr_time):
     return curr_time_str, delta_str
 
 
-def make_transform(eval=False, imsize=64):
+def make_transform(eval_mode=False, imsize=64):
     f = lambda x: x*2 - 1
     options = []
-    if 'eval':
+    if not eval_mode:
         transform = transforms.Compose([
-            transforms.RandomResizedCrop(imsize, scale=(0.8, 1.0), ratio=(1, 1)),
+            transforms.RandomResizedCrop(imsize, scale=(0.5, 1.0), ratio=(1, 1)),
             transforms.RandomHorizontalFlip(),
             transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.3),
-            transforms.RandomAffine(10, translate=(.2, .2), scale=(.8, 1.2), shear=1),
+            transforms.RandomAffine(20, translate=(.4, .4), scale=(.8, 1.2), shear=5),
             transforms.ToTensor(),
             transforms.Lambda(f)
         ])
@@ -101,7 +101,7 @@ def make_dataloader(args):
         if args.val_data_path == '':
             return dataloader
         else:
-            val_dataset = dset.ImageFolder(root=args.val_data_path, transform=make_transform(eval=True, imsize=args.imsize))
+            val_dataset = dset.ImageFolder(root=args.val_data_path, transform=make_transform(eval_mode=True, imsize=args.imsize))
             print("Val Data found! # of classes =", len(val_dataset.classes), ", # of images =", len(val_dataset))
             print("Classes:", val_dataset.classes)
             torch.manual_seed(args.seed)
