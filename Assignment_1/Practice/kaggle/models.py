@@ -327,20 +327,22 @@ class BN(nn.Module):
 
     def __init__(self, x_shape, device):
         super(BN, self).__init__()
-        self.bn_bias = torch.zeros((1, x_shape[1], x_shape[2], x_shape[3]), requires_grad=True).to(device)
-        self.bn_std = torch.ones((1, x_shape[1], x_shape[2], x_shape[3]), requires_grad=True).to(device)
+        self.x_shape = x_shape
+        self.bn_bias = torch.zeros((1, self.x_shape[1], 1, 1), requires_grad=True).to(device)
+        self.bn_std = torch.ones((1, self.x_shape[1], 1, 1), requires_grad=True).to(device)
 
-    def train(self):
-        self.bn_bias.requires_grad = True
-        self.bn_std.requires_grad = True
+    # def train(self):
+    #     self.bn_bias.requires_grad = True
+    #     self.bn_std.requires_grad = True
 
-    def eval(self):
-        self.bn_bias.requires_grad = False
-        self.bn_std.requires_grad = False
+    # def eval(self):
+    #     self.bn_bias.requires_grad = False
+    #     self.bn_std.requires_grad = False
 
     def forward(self, x):
-        mean = torch.mean(x, dim=0, keepdim=True)
-        std = torch.std(x, dim=0, keepdim=True)
+        y = x.transpose(0, 1).contiguous().view(self.x_shape[1], -1)
+        mean = torch.mean(y, dim=1).contiguous().view(1, self.x_shape[1], 1, 1)
+        std = torch.sqrt(torch.var(y, dim=1).contiguous().view(1, self.x_shape[1], 1, 1) + 1e-8)
         z = (x - mean)/std
         return z*self.bn_std + self.bn_bias
 
