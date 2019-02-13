@@ -109,7 +109,7 @@ def eval(args, model, eval_loader):
             preds += output.argmax(dim=1).tolist() # get the index of the max log-probability
 
     # Read image names
-    ids = [int(os.path.splitext(i)[0]) for i in sorted(os.listdir(os.path.join(args.data_path, 'test')))]
+    ids = [int(i.split('.')[0]) for i in sorted(os.listdir(os.path.join(args.data_path, 'test')))]
 
     # Sort ids
     sort_order = np.argsort(ids)

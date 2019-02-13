@@ -95,6 +95,7 @@ def make_dataloader(args):
         dataset = dset.ImageFolder(root=args.data_path, transform=transform)
         args.num_of_classes = len(dataset.classes)
         print("Data found! # of classes =", args.num_of_classes, ", # of images =", len(dataset))
+        args.classes = dataset.classes
         print("Classes:", dataset.classes)
         torch.manual_seed(args.seed)
         dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=args.shuffle, drop_last=args.drop_last, **args.kwargs)

@@ -25,11 +25,14 @@ if __name__ == '__main__':
 
     # Load pth
     pth_dir_name = os.path.dirname(args.pth)
+    print("Loading model", os.path.join(pth_dir_name, 'model.pth'))
     model = torch.load(os.path.join(pth_dir_name, 'model.pth'))
+    print("Loading model state dict", args.pth)
     model.load_state_dict(torch.load(args.pth))
     model = model.to(args.device)
 
     # Make dataloader with Eval parameters
+    print("Making dataloader")
     args.valid_split = 0
     args.centercrop = False
     args.shuffle = False

@@ -54,7 +54,20 @@ if __name__ == '__main__':
             model.load_state_dict(torch.load(args.pth))
             model = model.to(args.device)
         else:
-            model = CnDBigClassifier()
+            if args.model == 'baseline':
+                model = CnDClassifier()
+            elif args.model == 'big':
+                model = CnDBigClassifier()
+            elif args.model == 'TinyImageNet':
+                model = TinyImageNetClassifier()
+            elif args.model == 'transfer':
+                pth_dir_name = os.path.dirname(args.transfer)
+                full_model_pth = os.path.join(pth_dir_name, 'model.pth')
+                model = TransferModel(full_model_pth, args.transfer, args.freeze)
+            elif args.model == 'skip':
+                model = CnDSkipClassifier().to(args.device)
+            elif args.model == 'bn_skip':
+                model = CnDBNSkipClassifier(args.bn, args.skip, args.device)
             print("Loading pretrained state_dict", args.pth)
             model.load_state_dict(torch.load(args.pth))
             model = model.to(args.device)
