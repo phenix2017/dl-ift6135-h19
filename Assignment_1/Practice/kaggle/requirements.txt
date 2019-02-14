@@ -1,0 +1,7 @@
+numpy==1.15.4
+psutil==5.4.8
+matplotlib==3.0.0
+torchvision==0.2.1
+tqdm==4.26.0
+imageio==2.4.1
+torch==0.4.1
