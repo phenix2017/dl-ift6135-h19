@@ -66,8 +66,8 @@ for i in tqdm.tqdm(range(data.shape[2]//stride)):
         data_occ[:, :, left:right, up:down] = 0
         occluded_data = torch.cat((occluded_data, data_occ), dim=0)
 
-batch_size = 12
-8model_outs = np.empty((0, 2))
+batch_size = 128
+model_outs = np.empty((0, 2))
 for i in tqdm.tqdm(range(len(occluded_data)//batch_size)):
     data_occ = occluded_data[i*batch_size:(i+1)*batch_size]
     data_occ = data_occ.to('cuda')
