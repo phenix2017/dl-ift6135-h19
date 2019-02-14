@@ -120,7 +120,7 @@ def eval(args, model, eval_loader):
     pred_labels = [labels[preds[i]] for i in sort_order]
 
     # Write csv
-    csv_file_name = os.path.join(os.path.dirname(args.pth), 'submission_' + os.path.basename(os.path.dirname(args.pth)) + '_' + os.path.splitext(os.path.basename(args.pth))[0] + '.csv')
+    csv_file_name = os.path.join(args.out_path, 'submission_' + os.path.basename(os.path.dirname(args.pth)) + '_' + os.path.splitext(os.path.basename(args.pth))[0] + '.csv')
     print("Writing", csv_file_name)
     with open(csv_file_name, mode='w') as csv_file:
         csv_writer = csv.writer(csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
