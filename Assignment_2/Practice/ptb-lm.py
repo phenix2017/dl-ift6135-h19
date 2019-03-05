@@ -155,6 +155,8 @@ args = parser.parse_args()
 argsdict = args.__dict__
 argsdict['code_file'] = sys.argv[0]
 
+print(argsdict)
+
 # Use the model, optimizer, and the flags passed to the script to make the 
 # name for the experimental dir
 print("\n########## Setting Up Experiment ######################")
@@ -369,8 +371,7 @@ def run_epoch(model, data, is_train=False, lr=1.0):
     epoch_size = ((len(data) // model.batch_size) - 1) // model.seq_len
     start_time = time.time()
     if args.model != 'TRANSFORMER':
-        hidden = model.init_hidden()
-        hidden.to(device)
+        hidden = model.init_hidden().to(device)
     costs = 0.0
     iters = 0
     losses = []
