@@ -372,7 +372,7 @@ def run_epoch(model, data, is_train=False, lr=1.0):
     start_time = time.time()
     if args.model != 'TRANSFORMER':
         hidden = model.init_hidden().to(device)
-    costs = 0.0
+    costs = 0.
     iters = 0
     losses = []
 
@@ -417,9 +417,9 @@ def run_epoch(model, data, is_train=False, lr=1.0):
                         p.data.add_(-lr, p.grad.data)
             if step % (epoch_size // 10) == 10:
                 print('step: '+ str(step) + '\t' \
-                    + 'loss: {:.04f} \t'.format(costs) \
+                    + 'loss: {:.04f} \t'.format(np.exp(costs/iters)) \
                     + 'speed (wps): {:.04f}'.format(iters*model.batch_size/(time.time() - start_time)))
-    return np.exp(costs / iters), losses
+    return np.exp(costs/iters), losses
 
 
 
