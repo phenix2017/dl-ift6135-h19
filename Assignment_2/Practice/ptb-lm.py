@@ -191,6 +191,7 @@ else:
       of memory. \n You can try setting batch_size=1 to reduce memory usage")
     device = torch.device("cpu")
 
+device = torch.device("cpu")
 
 ###############################################################################
 #
@@ -375,7 +376,10 @@ def run_epoch(model, data, is_train=False, lr=1.0):
     losses = []
 
     # LOOP THROUGH MINIBATCHES
-    for step, (x, y) in enumerate(ptb_iterator(data, model.batch_size, model.seq_len)):
+    import tqdm
+    # import pdb; pdb.set_trace()
+    for step, (x, y) in tqdm.tqdm(enumerate(ptb_iterator(data, model.batch_size, model.seq_len)),
+                                  total=(len(data)//model.batch_size - 1)//model.seq_len):
         if args.model == 'TRANSFORMER':
             batch = Batch(torch.from_numpy(x).long().to(device))
             model.zero_grad()
@@ -447,9 +451,11 @@ for epoch in range(num_epochs):
         lr = lr * lr_decay # decay lr if it is time
 
     # RUN MODEL ON TRAINING DATA
+    print("Train")
     train_ppl, train_loss = run_epoch(model, train_data, True, lr)
 
     # RUN MODEL ON VALIDATION DATA
+    print("Valid")
     val_ppl, val_loss = run_epoch(model, valid_data)
 
 
