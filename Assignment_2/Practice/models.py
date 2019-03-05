@@ -96,9 +96,14 @@ class RNN(nn.Module):
                                        nn.Linear(in_features=self.hidden_size,
                                                  out_features=self.vocab_size,
                                                  bias=True),
-                                       nn.Tanh(),
-                                       nn.Dropout(p=(1 - self.dp_keep_prob))
+                                       nn.Tanh()
                                        )
+
+        # Dropouts
+        self.dropouts = []
+        # One for input of each hidden layer, and one more for out layer
+        for _ in range(num_layers + 1):
+            self.dropouts.append(nn.Dropout(p=(1 - self.dp_keep_prob)))
 
         # Initialize all weights
         self.init_weights_uniform()
@@ -158,26 +163,25 @@ class RNN(nn.Module):
             # For each layer
             for l, h_layer in enumerate(self.hidden_layers):
 
-                # Hidden state at this layer
-                hidden_l = hidden[l]    # (batch_size, hidden_size)
+                # Concatenate dropout(input), and hidden state at this layer
+                input_cat = torch.cat((self.dropouts[l](input_t),
+                                       hidden[l]),
+                                      dim=1)
 
-                # Concatenate input and hidden state
-                input_cat = torch.cat((input_t, hidden_l), dim=1)
-
-                # Get layer output
-                layer_out_t = h_layer(input_cat)
+                # Get hidden layer output
+                h_layer_out_t = h_layer(input_cat)
 
                 # Input for next layer
                 input_t = layer_out_t
 
                 # Hidden state for next time step
-                hidden_next.append(layer_out_t)
+                hidden_next.append(h_layer_out_t)
 
             # Make hidden for next time step
             hidden = torch.stack(hidden_next)
 
             # Get output at this time step
-            logits.append(self.out_layer(layer_out_t))
+            logits.append(self.out_layer(self.dropouts[-1](h_layer_out_t)))
 
         # Return logits: (num_layers, batch_size, hidden_size),
         #        hidden: (seq_len, batch_size, hidden_size)

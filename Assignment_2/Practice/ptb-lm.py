@@ -417,8 +417,8 @@ def run_epoch(model, data, is_train=False, lr=1.0):
                         p.data.add_(-lr, p.grad.data)
             if step % (epoch_size // 10) == 10:
                 print('step: '+ str(step) + '\t' \
-                    + 'loss: '+ str(costs) + '\t' \
-                    + 'speed (wps):' + str(iters * model.batch_size / (time.time() - start_time)))
+                    + 'loss: {:.04f} \t'.format(costs) \
+                    + 'speed (wps): {:.04f}'.format(iters*model.batch_size/(time.time() - start_time)))
     return np.exp(costs / iters), losses
 
 
