@@ -172,7 +172,7 @@ class RNN(nn.Module):
                 h_layer_out_t = h_layer(input_cat)
 
                 # Input for next layer
-                input_t = layer_out_t
+                input_t = h_layer_out_t
 
                 # Hidden state for next time step
                 hidden_next.append(h_layer_out_t)
