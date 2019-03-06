@@ -101,9 +101,12 @@ class RNN(nn.Module):
 
         # Dropouts
         self.dropouts = []
-        # One for input of each hidden layer, and one more for out layer
-        for _ in range(num_layers + 1):
-            self.dropouts.append(nn.Dropout(p=(1 - self.dp_keep_prob)))
+        # At each time step,
+        # one for input of each hidden layer, and one more for out layer
+        for _ in range(seq_len):
+            self.dropouts.append([])
+            for _ in range(num_layers + 1):
+                self.dropouts[-1].append(nn.Dropout(p=(1 - self.dp_keep_prob)))
 
         # Initialize all weights
         self.init_weights_uniform()
@@ -164,7 +167,7 @@ class RNN(nn.Module):
             for l, h_layer in enumerate(self.hidden_layers):
 
                 # Concatenate dropout(input), and hidden state at this layer
-                input_cat = torch.cat((self.dropouts[l](input_t),
+                input_cat = torch.cat((self.dropouts[t][l](input_t),
                                        hidden[l]),
                                       dim=1)
 
@@ -181,7 +184,7 @@ class RNN(nn.Module):
             hidden = torch.stack(hidden_next)
 
             # Get output at this time step
-            logits.append(self.out_layer(self.dropouts[-1](h_layer_out_t)))
+            logits.append(self.out_layer(self.dropouts[t][-1](h_layer_out_t)))
 
         # Return logits: (seq_len, batch_size, vocab_size),
         #        hidden: (num_layers, batch_size, hidden_size)
