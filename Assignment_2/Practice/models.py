@@ -148,9 +148,6 @@ class RNN(nn.Module):
         # Input to hidden layer - embedding of input
         h_input = self.emb_layer(inputs)    # (seq_len, batch_size, emb_size)
 
-        # To save hidden states for next time step
-        hidden_next = []
-
         # To save outputs at each time step
         logits = []
 
@@ -159,6 +156,9 @@ class RNN(nn.Module):
 
             # Input at this time step
             input_t = h_input[t]        # (batch_size, emb_size)
+
+            # To save hidden states for next time step
+            hidden_next = []
 
             # For each layer
             for l, h_layer in enumerate(self.hidden_layers):
@@ -183,8 +183,8 @@ class RNN(nn.Module):
             # Get output at this time step
             logits.append(self.out_layer(self.dropouts[-1](h_layer_out_t)))
 
-        # Return logits: (num_layers, batch_size, hidden_size),
-        #        hidden: (seq_len, batch_size, hidden_size)
+        # Return logits: (seq_len, batch_size, vocab_size),
+        #        hidden: (num_layers, batch_size, hidden_size)
         return torch.stack(logits), hidden
 
     def generate(self, input, hidden, generated_seq_len):
@@ -217,9 +217,6 @@ class RNN(nn.Module):
         samples = input.view(1, -1)         # (1, batch_size)
         h_input = self.emb_layer(samples)   # (1, batch_size, emb_size)
 
-        # To save hidden states for next time step
-        hidden_next = []
-
         # To save outputs at each time step
         logits = []
 
@@ -228,6 +225,9 @@ class RNN(nn.Module):
 
             # Input at this time step
             input_t = h_input[0]        # (batch_size, emb_size)
+
+            # To save hidden states for next time step
+            hidden_next = []
 
             # For each layer
             for l, h_layer in enumerate(self.hidden_layers):
@@ -239,20 +239,20 @@ class RNN(nn.Module):
                 input_cat = torch.cat((input_t, hidden_l), dim=1)
 
                 # Get layer output
-                layer_out_t = h_layer(input_cat)
+                h_layer_out_t = h_layer(input_cat)
 
                 # Input for next layer
-                input_t = layer_out_t
+                input_t = h_layer_out_t
 
                 # Hidden state for next time step
-                hidden_next.append(layer_out_t)
+                hidden_next.append(h_layer_out_t)
 
             # Make hidden for next time step
             hidden = torch.stack(hidden_next)
             # (num_layers, batch_size, hidden_size)
 
             # Get output at this time step
-            logits = self.out_layer(layer_out_t)    # (batch_size, vocab_size)
+            logits = self.out_layer(h_layer_out_t)    # (batch_size, vocab_size)
             token_out = torch.argmax(nn.Softmax()(logits), dim=1) # (batch_size)
             token_out = token_out.view(1, -1)       # (1, batch_size)
             # token_out = token_out.detach().view(1, -1)       # (1, batch_size)
