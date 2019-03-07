@@ -73,12 +73,10 @@ class RNN(nn.Module):
 
         # Hidden layer module as a Sequential of linear and tanh
         def one_hidden_layer(in_features, out_features):
-            return nn.Sequential(
-                                 nn.Linear(in_features=in_features,
+            return nn.Sequential(nn.Linear(in_features=in_features,
                                            out_features=out_features,
                                            bias=True),
-                                 nn.Tanh()
-                                )
+                                 nn.Tanh())
 
         # First hidden layer
         self.hidden_layers.append(one_hidden_layer(
@@ -92,19 +90,17 @@ class RNN(nn.Module):
                                                out_features=self.hidden_size))
 
         # Out layer
-        self.out_layer = nn.Sequential(
-                                       nn.Linear(in_features=self.hidden_size,
+        self.out_layer = nn.Sequential(nn.Linear(in_features=self.hidden_size,
                                                  out_features=self.vocab_size,
                                                  bias=True),
-                                       nn.Tanh()
-                                       )
+                                       nn.Tanh())
 
         # Dropouts
-        self.dropouts = []
+        self.dropouts = nn.ModuleList()
         # At each time step,
         # one for input of each hidden layer, and one more for out layer
         for _ in range(seq_len):
-            self.dropouts.append([])
+            self.dropouts.append(nn.ModuleList())
             for _ in range(num_layers + 1):
                 self.dropouts[-1].append(nn.Dropout(p=(1 - self.dp_keep_prob)))
 
