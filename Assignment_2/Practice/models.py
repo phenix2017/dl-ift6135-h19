@@ -102,7 +102,7 @@ class RNN(nn.Module):
         for _ in range(seq_len):
             self.dropouts.append(nn.ModuleList())
             for _ in range(num_layers + 1):
-                self.dropouts[-1].append(nn.Dropout(p=(1 - self.dp_keep_prob)))
+                self.dropouts[-1].append(nn.Dropout(p=(1 - dp_keep_prob)))
 
         # Initialize all weights
         self.init_weights_uniform()
@@ -145,25 +145,23 @@ class RNN(nn.Module):
         """
 
         # Input to hidden layer - embedding of input
-        h_input = self.emb_layer(inputs)    # (seq_len, batch_size, emb_size)
+        emb_input = self.emb_layer(inputs)    # (seq_len, batch_size, emb_size)
 
         # To save outputs at each time step
-        logits = []
+        logits = torch.zeros([self.seq_len, self.batch_size, self.vocab_size],
+                             device=inputs.device)
 
         # For each time step
         for t in range(self.seq_len):
 
-            # Input at this time step
-            input_t = h_input[t]        # (batch_size, emb_size)
-
-            # To save hidden states for next time step
-            hidden_next = []
+            # Input at this time step to the first layer
+            input_l = emb_input[t]        # (batch_size, emb_size)
 
             # For each layer
             for l, h_layer in enumerate(self.hidden_layers):
 
                 # Concatenate dropout(input), and hidden state at this layer
-                input_cat = torch.cat((self.dropouts[t][l](input_t),
+                input_cat = torch.cat((self.dropouts[t][l](input_l),
                                        hidden[l]),
                                       dim=1)
 
@@ -171,20 +169,17 @@ class RNN(nn.Module):
                 h_layer_out_t = h_layer(input_cat)
 
                 # Input for next layer
-                input_t = h_layer_out_t
+                input_l = h_layer_out_t
 
                 # Hidden state for next time step
-                hidden_next.append(h_layer_out_t)
-
-            # Make hidden for next time step
-            hidden = torch.stack(hidden_next)
+                hidden[l] = h_layer_out_t.clone()
 
             # Get output at this time step
-            logits.append(self.out_layer(self.dropouts[t][-1](h_layer_out_t)))
+            logits[t] = self.out_layer(self.dropouts[t][-1](h_layer_out_t))
 
         # Return logits: (seq_len, batch_size, vocab_size),
         #        hidden: (num_layers, batch_size, hidden_size)
-        return torch.stack(logits), hidden
+        return logits, hidden
 
     def generate(self, input, hidden, generated_seq_len):
         # Compute the forward pass, as in the self.forward method (above).
@@ -215,9 +210,6 @@ class RNN(nn.Module):
         # Input to hidden layer - embedding of input
         samples = input.view(1, -1)         # (1, batch_size)
         h_input = self.emb_layer(samples)   # (1, batch_size, emb_size)
-
-        # To save outputs at each time step
-        logits = []
 
         # For each time step
         for t in range(generated_seq_len):
@@ -267,33 +259,216 @@ class RNN(nn.Module):
 
 # Problem 2
 class GRU(nn.Module): # Implement a stacked GRU RNN
-    """
-    Follow the same instructions as for RNN (above), but use the equations for 
-    GRU, not Vanilla RNN.
-    """
     def __init__(self, emb_size, hidden_size, seq_len, batch_size, vocab_size,
                  num_layers, dp_keep_prob):
         super(GRU, self).__init__()
 
-        # TODO ========================
+        # Params
+        self.emb_size = emb_size
+        self.hidden_size = hidden_size
+        self.seq_len = seq_len
+        self.batch_size = batch_size
+        self.vocab_size = vocab_size
+        self.num_layers = num_layers
+        self.dp_keep_prob = dp_keep_prob
+
+        # Input Embedding layer
+        self.emb_layer = nn.Embedding(num_embeddings=vocab_size,
+                                      embedding_dim=emb_size)
+
+        # Transformations
+        def transformation(in_features, out_features, bias=True):
+            return nn.Sequential(nn.Linear(in_features=in_features,
+                                           out_features=out_features,
+                                           bias=bias),
+                                 nn.Tanh())
+
+        # Reset
+        self.reset_tx = nn.ModuleList()
+        for i in range(num_layers):
+            # Input dimension
+            input_dim = emb_size if i == 0 else hidden_size
+            # Reset transformation
+            self.reset_tx.append(transformation(
+                                    in_features=input_dim+hidden_size,
+                                    out_features=hidden_size)
+                                )
+
+        # Forget
+        self.forget_tx = nn.ModuleList()
+        for i in range(num_layers):
+            # Input dimension
+            input_dim = emb_size if i == 0 else hidden_size
+            # Reset transformation
+            self.forget_tx.append(transformation(
+                                    in_features=input_dim+hidden_size,
+                                    out_features=hidden_size)
+                                 )
+
+        # Reset gate
+        self.reset_g = nn.ModuleList()
+        for _ in range(num_layers):
+            # Input dimension
+            input_dim = emb_size if i == 0 else hidden_size
+            # Reset transformation
+            self.reset_g.append(transformation(
+                                    in_features=input_dim+hidden_size,
+                                    out_features=hidden_size)
+                               )
+
+        # Output layer
+        self.out_layer = transformation(in_features=hidden_size,
+                                        out_features=vocab_size)
+
+        # Dropouts
+        self.dropouts = nn.ModuleList()
+        # At each time step,
+        # one for input of each hidden layer, and one more for out layer
+        for _ in range(seq_len):
+            self.dropouts.append(nn.ModuleList())
+            for _ in range(num_layers + 1):
+                self.dropouts[-1].append(nn.Dropout(p=(1 - dp_keep_prob)))
+
+        # Initialize all weights
+        self.init_weights_uniform()
 
     def init_weights_uniform(self):
-        # TODO ========================
-        return True
+        for m in self.modules():
+            if type(m) == nn.Linear:
+                torch.nn.init.uniform_(m.weight.data, a=-0.1, b=0.1)
+                if m.bias is not None:
+                    m.bias.data.fill_(0.)
 
     def init_hidden(self):
-        # TODO ========================
-        # return a parameter tensor of shape
-        # (self.num_layers, self.batch_size, self.hidden_size)
-        return 
+        return torch.zeros(self.num_layers, self.batch_size, self.hidden_size)
 
     def forward(self, inputs, hidden):
-        # TODO ========================
-        return logits.view(self.seq_len, self.batch_size, self.vocab_size), hidden
+
+        # Input to hidden layer - embedding of input
+        h_input = self.emb_layer(inputs)    # (seq_len, batch_size, emb_size)
+
+        # To save outputs at each time step
+        logits = []
+
+        # For each time step
+        for t in range(self.seq_len):
+
+            # Input at this time step at the first layer
+            input_l = h_input[t]        # (batch_size, emb_size)
+
+            # To save hidden states for next time step
+            hidden_next_t = []
+
+            # For each layer
+            for l, (reset_tx_l, forget_tx_l, reset_gate_l) in enumerate(zip(
+                                                                self.reset_tx,
+                                                                self.forget_tx,
+                                                                self.reset_g
+                                                               )):
+
+                # dropout(input) at this layer
+                input_l_dropout = self.dropouts[t][l](input_l)
+
+                # Concatenate dropout(input), and hidden state at this layer
+                input_cat = torch.cat((input_l_dropout, hidden[l]), dim=1)
+
+                # Get reset
+                r_t = reset_tx_l(input_cat)
+
+                # Get forget
+                z_t = forget_tx_l(input_cat)
+
+                # Concatenate input and reset (.) hidden state for reset gate
+                reset_in = torch.cat((input_l_dropout, r_t*hidden[l]),
+                                     dim=1)
+
+                # Get reset gate output
+                h_tild_t = reset_gate_l(reset_in)
+
+                # Get output
+                h_layer_out_t = (1 - z_t)*hidden[l] + z_t*h_tild_t
+
+                # Input for next layer
+                input_l = h_layer_out_t
+
+                # Hidden state for next time step
+                hidden_next_t.append(h_layer_out_t)
+
+            # Make hidden for next time step
+            hidden = torch.stack(hidden_next_t)
+
+            # Get output at this time step
+            logits.append(self.out_layer(self.dropouts[t][-1](h_layer_out_t)))
+
+        # Return logits: (seq_len, batch_size, vocab_size),
+        #        hidden: (num_layers, batch_size, hidden_size)
+        return torch.stack(logits), hidden
 
     def generate(self, input, hidden, generated_seq_len):
-        # TODO ========================
-        return samples
+
+        # Input to hidden layer - embedding of input
+        samples = input.view(1, -1)         # (1, batch_size)
+        h_input = self.emb_layer(samples)   # (1, batch_size, emb_size)
+
+        # For each time step
+        for t in range(generated_seq_len):
+
+            # Input at this time step at the first layer
+            input_l = h_input[0]        # (batch_size, emb_size)
+
+            # To save hidden states for next time step
+            hidden_next_t = []
+
+            # For each layer
+            for l, (reset_tx_l, forget_tx_l, reset_gate_l) in enumerate(zip(
+                                                                self.reset_tx,
+                                                                self.forget_tx,
+                                                                self.reset_g
+                                                               )):
+
+                # dropout(input) at this layer
+                input_l_dropout = self.dropouts[t][l](input_l)
+
+                # Concatenate dropout(input), and hidden state at this layer
+                input_cat = torch.cat((input_l_dropout, hidden[l]), dim=1)
+
+                # Get reset
+                r_t = reset_tx_l(input_cat)
+
+                # Get forget
+                z_t = forget_tx_l(input_cat)
+
+                # Concatenate input and reset (.) hidden state for reset gate
+                reset_in = torch.cat((input_l_dropout, r_t*hidden[l]),
+                                     dim=1)
+
+                # Get reset gate output
+                h_tild_t = reset_gate_l(reset_in)
+
+                # Get output
+                h_layer_out_t = (1 - z_t)*hidden[l] + z_t*h_tild_t
+
+                # Input for next layer
+                input_l = h_layer_out_t
+
+                # Hidden state for next time step
+                hidden_next_t.append(h_layer_out_t)
+
+            # Make hidden for next time step
+            hidden = torch.stack(hidden_next_t)
+
+            # Get output at this time step
+            logits = self.out_layer(self.dropouts[t][-1](h_layer_out_t))
+            token_out = torch.argmax(nn.Softmax()(logits), dim=1) # (batch_size)
+            token_out = token_out.view(1, -1)       # (1, batch_size)
+
+            # Make input to next time step
+            h_input = self.emb_layer(token_out)     # (1, batch_size, emb_size)
+
+            # Append to samples
+            samples = torch.cat((samples, token_out), dim=0)
+
+        return samples      # (generated_seq_len, batch_size)
 
 
 # Problem 3
