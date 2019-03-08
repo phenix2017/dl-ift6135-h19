@@ -267,17 +267,17 @@ class GRU_cell(nn.Module):
 
         self.dropout = nn.Dropout(p=(1 - dp_keep_prob))
 
-        self.reset_tx = nn.Linear(in_features=(in_dim + h_dim),
+        self.reset_tx = nn.Linear(in_features=(x_dim + h_dim),
                                   out_features=h_dim,
                                   bias=True)
         self.reset_act = nn.Sigmoid()
 
-        self.forget_tx = nn.Linear(in_features=(in_dim + h_dim),
+        self.forget_tx = nn.Linear(in_features=(x_dim + h_dim),
                                    out_features=h_dim,
                                    bias=True)
         self.forget_act = nn.Sigmoid()
 
-        self.reset_gate = nn.Linear(in_features=(in_dim + h_dim),
+        self.reset_gate = nn.Linear(in_features=(x_dim + h_dim),
                                     out_features=h_dim,
                                     bias=True)
         self.reset_gate_act = nn.Sigmoid()
@@ -288,7 +288,7 @@ class GRU_cell(nn.Module):
         nn.init.uniform_(W.bias.data,
                          a=-np.sqrt(1/self.h_dim), b=np.sqrt(1/self.h_dim))
 
-    def init_weights_uniform():
+    def init_weights_uniform(self):
         self.init_weight_and_bias(self.reset_tx)
         self.init_weight_and_bias(self.forget_tx)
         self.init_weight_and_bias(self.reset_gate)
@@ -367,11 +367,12 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
 
     def forward(self, inputs, hidden):
 
+        # To save outputs at each time step
+        logits = torch.zeros([self.seq_len, self.batch_size, self.vocab_size],
+                             device=inputs.device)
+
         # Input to hidden layer - embedding of input
         emb_input = self.emb_layer(inputs)    # (seq_len, batch_size, emb_size)
-
-        # To save outputs at each time step
-        logits = []
 
         # For each time step
         for t in range(self.seq_len):
