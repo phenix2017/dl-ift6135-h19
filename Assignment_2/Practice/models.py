@@ -35,6 +35,26 @@ def clones(module, N):
     return nn.ModuleList([copy.deepcopy(module) for _ in range(N)])
 
 
+class RNN_hidden_layer(nn.Module):
+    def __init__(self, x_dim, h_dim, dp_keep_prob):
+        super(RNN_hidden_layer, self).__init__()
+        self.dropout = nn.Dropout(p=(1 - dp_keep_prob))
+        self.W = nn.Linear(in_features=(x_dim + h_dim),
+                           out_features=h_dim,
+                           bias=True)
+        self.tanh = nn.Tanh()
+
+    def init_weights_uniform(self):
+        return
+
+    def forward(self, x, h):
+        x = self.dropout(x)
+        l_input = torch.cat((x, h), dim=1)
+        l_out = self.W(l_input)
+        out = self.tanh(l_out)
+        return out
+
+
 # Problem 1
 class RNN(nn.Module):
     # Implement a stacked vanilla RNN with Tanh nonlinearities
@@ -65,56 +85,42 @@ class RNN(nn.Module):
         self.dp_keep_prob = dp_keep_prob
 
         # Input Embedding layer
-        self.emb_layer = nn.Embedding(num_embeddings=self.vocab_size,
-                                      embedding_dim=self.emb_size)
+        self.emb_layer = nn.Embedding(num_embeddings=vocab_size,
+                                      embedding_dim=emb_size)
 
         # Hidden layers as a MduleList
         self.hidden_layers = nn.ModuleList()
 
-        # Hidden layer module as a Sequential of linear and tanh
-        def one_hidden_layer(in_features, out_features):
-            return nn.Sequential(nn.Linear(in_features=in_features,
-                                           out_features=out_features,
-                                           bias=True),
-                                 nn.Tanh())
-
-        # First hidden layer
-        self.hidden_layers.append(one_hidden_layer(
-                                 in_features=(self.emb_size + self.hidden_size),
-                                 out_features=self.hidden_size))
-
-        # More hidden layers
-        for _ in range(num_layers-1):
-            self.hidden_layers.append(one_hidden_layer(
-                                               in_features=(2*self.hidden_size),
-                                               out_features=self.hidden_size))
+        # Hidden layers
+        for i in range(num_layers):
+            input_dim = emb_size if i == 0 else hidden_size
+            self.hidden_layers.append(
+                                    RNN_hidden_layer(x_dim=input_dim,
+                                                     h_dim=hidden_size,
+                                                     dp_keep_prob=dp_keep_prob)
+                                    )
 
         # Out layer
-        self.out_layer = nn.Sequential(nn.Linear(in_features=self.hidden_size,
-                                                 out_features=self.vocab_size,
-                                                 bias=True),
-                                       nn.Tanh())
-
-        # Dropouts
-        self.dropouts = nn.ModuleList()
-        # At each time step,
-        # one for input of each hidden layer, and one more for out layer
-        for _ in range(seq_len):
-            self.dropouts.append(nn.ModuleList())
-            for _ in range(num_layers + 1):
-                self.dropouts[-1].append(nn.Dropout(p=(1 - dp_keep_prob)))
+        self.out_dropout = nn.Dropout(p=(1 - dp_keep_prob))
+        self.out_layer = nn.Linear(in_features=hidden_size,
+                                   out_features=vocab_size,
+                                   bias=True)
+        self.tanh = nn.Tanh()
 
         # Initialize all weights
         self.init_weights_uniform()
 
     def init_weights_uniform(self):
-        # Initialize all the weights uniformly in the range [-0.1, 0.1]
-        # and all the biases to 0 (in place)
-        for m in self.modules():
-            if type(m) == nn.Linear:
-                torch.nn.init.uniform_(m.weight.data, a=-0.1, b=0.1)
-                if m.bias is not None:
-                    m.bias.data.fill_(0.)
+        # Initialize the embedding and output weights uniformly in the range
+        # [-0.1, 0.1] and the embedding and output biases to 0 (in place).
+        # Initialize all other (i.e. recurrent and linear) weights AND biases
+        # uniformly in the range [-k, k] where k is the square root of
+        # 1/hidden_size
+        nn.init.uniform_(self.emb_layer.weight.data, a=-0.1, b=0.1)
+        nn.init.uniform_(self.out_layer.weight.data, a=-0.1, b=0.1)
+        nn.init.zeros_(self.out_layer.bias.data)
+        for hidden_layer in self.hidden_layers:
+            hidden_layer.init_weights_uniform()
 
     def init_hidden(self):
         # initialize the hidden states to zero
@@ -144,38 +150,41 @@ class RNN(nn.Module):
                         shape: (num_layers, batch_size, hidden_size)
         """
 
-        # Input to hidden layer - embedding of input
-        emb_input = self.emb_layer(inputs)    # (seq_len, batch_size, emb_size)
-
         # To save outputs at each time step
         logits = torch.zeros([self.seq_len, self.batch_size, self.vocab_size],
                              device=inputs.device)
 
+        # Input to hidden layer - embedding of input
+        emb_input = self.emb_layer(inputs)    # (seq_len, batch_size, emb_size)
+
         # For each time step
         for t in range(self.seq_len):
 
-            # Input at this time step to the first layer
-            input_l = emb_input[t]        # (batch_size, emb_size)
+            # Input at this time step for each layer
+            input_l = emb_input[t]      # (batch_size, emb_size)
+
+            # Next hidden layer
+            hidden_next = []
 
             # For each layer
             for l, h_layer in enumerate(self.hidden_layers):
 
-                # Concatenate dropout(input), and hidden state at this layer
-                input_cat = torch.cat((self.dropouts[t][l](input_l),
-                                       hidden[l]),
-                                      dim=1)
-
                 # Get hidden layer output
-                h_layer_out_t = h_layer(input_cat)
+                h_layer_out_t = h_layer(input_l, hidden[l])
 
                 # Input for next layer
                 input_l = h_layer_out_t
 
                 # Hidden state for next time step
-                hidden[l] = h_layer_out_t.clone()
+                hidden_next.append(h_layer_out_t)
+
+            # Stack next hidden layer
+            hidden = torch.stack(hidden_next)
 
             # Get output at this time step
-            logits[t] = self.out_layer(self.dropouts[t][-1](h_layer_out_t))
+            h_layer_out_dropout = self.out_dropout(input_l)
+            out_preact = self.out_layer(h_layer_out_dropout)
+            logits[t] = self.tanh(out_preact)
 
         # Return logits: (seq_len, batch_size, vocab_size),
         #        hidden: (num_layers, batch_size, hidden_size)
@@ -547,9 +556,11 @@ class MultiHeadedAttention(nn.Module):
         self.n_units = n_units 
 
         # TODO: create/initialize any necessary parameters or layers
+        # Initialize all weights and biases uniformly in the range [-k, k],
+        # where k is the square root of 1/n_units.
         # Note: the only Pytorch modules you are allowed to use are nn.Linear 
         # and nn.Dropout
-        
+
     def forward(self, query, key, value, mask=None):
         # TODO: implement the masked multi-head attention.
         # query, key, and value all have size:
