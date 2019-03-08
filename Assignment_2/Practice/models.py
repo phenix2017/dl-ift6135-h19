@@ -44,7 +44,7 @@ class RNN_hidden_layer(nn.Module):
         self.h_dim = h_dim
 
         self.dropout = nn.Dropout(p=(1 - dp_keep_prob))
-        self.W = nn.Linear(in_features=x_dim,
+        self.W = nn.Linear(in_features=(x_dim + h_dim),
                            out_features=h_dim,
                            bias=True)
         self.tanh = nn.Tanh()
@@ -350,17 +350,17 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
         # Initialize all weights
         self.init_weights_uniform()
 
-
-
-        # Initialize all weights
-        self.init_weights_uniform()
-
     def init_weights_uniform(self):
         # Initialize the embedding and output weights uniformly in the range
         # [-0.1, 0.1] and the embedding and output biases to 0 (in place).
         # Initialize all other (i.e. recurrent and linear) weights AND biases
         # uniformly in the range [-k, k] where k is the square root of
         # 1/hidden_size
+        nn.init.uniform_(self.emb_layer.weight.data, a=-0.1, b=0.1)
+        nn.init.uniform_(self.out_layer.weight.data, a=-0.1, b=0.1)
+        nn.init.zeros_(self.out_layer.bias.data)
+        for hidden_layer in self.hidden_layers:
+            hidden_layer.init_weights_uniform()
 
     def init_hidden(self):
         return torch.zeros(self.num_layers, self.batch_size, self.hidden_size)
