@@ -36,6 +36,11 @@ def clones(module, N):
 
 
 # Problem 1
+
+# Saving model parameters to best_params.pt
+# epoch: 38       train ppl: 121.80064721976173   val ppl: 156.69626000530616     best val: 156.69626000530616    time (s) spent in epoch: 112.13631200790405
+
+
 class RNN_hidden_layer(nn.Module):
     def __init__(self, x_dim, h_dim, dp_keep_prob):
         super(RNN_hidden_layer, self).__init__()
@@ -161,7 +166,7 @@ class RNN(nn.Module):
             input_l = emb_input[t]      # (batch_size, emb_size)
 
             # Next hidden layer
-            hidden_next = []
+            hidden_next_t = []
 
             # For each layer
             for l, h_layer in enumerate(self.hidden_layers):
@@ -173,10 +178,10 @@ class RNN(nn.Module):
                 input_l = h_layer_out_t
 
                 # Hidden state for next time step
-                hidden_next.append(h_layer_out_t)
+                hidden_next_t.append(h_layer_out_t)
 
             # Stack next hidden layer
-            hidden = torch.stack(hidden_next)
+            hidden = torch.stack(hidden_next_t)
 
             # Get output at this time step
             h_layer_out_dropout = self.out_dropout(input_l)
@@ -258,6 +263,10 @@ class RNN(nn.Module):
 
 
 # Problem 2
+
+# Saving model parameters to best_params.pt
+# epoch: 27       train ppl: 116.95518721792156   val ppl: 124.60737873390084     best val: 124.60737873390084    time (s) spent in epoch: 190.69589734077454
+
 class GRU_cell(nn.Module):
     def __init__(self, x_dim, h_dim, dp_keep_prob):
         super(GRU_cell, self).__init__()
@@ -280,7 +289,7 @@ class GRU_cell(nn.Module):
         self.reset_gate = nn.Linear(in_features=(x_dim + h_dim),
                                     out_features=h_dim,
                                     bias=True)
-        self.reset_gate_act = nn.Sigmoid()
+        self.reset_gate_act = nn.Tanh()
 
     def init_weight_and_bias(self, W):
         nn.init.uniform_(W.weight.data,
@@ -471,7 +480,7 @@ The model first encodes inputs using the concatenation of a learned
 WordEmbedding and a (in our case, hard-coded) PositionalEncoding.
 The word embedding maps a word's one-hot encoding into a dense real vector.
 The positional encoding 'tags' each element of an input sequence with a code
-that identifies it's position (i.e. time-step).
+that identifies its position (i.e. time-step).
 
 These encodings of the inputs are then transformed repeatedly using multiple
 copies of a TransformerBlock.
@@ -519,14 +528,21 @@ class MultiHeadedAttention(nn.Module):
         dropout: probability of DROPPING units
         """
         super(MultiHeadedAttention, self).__init__()
+        self.n_units = n_units
+        self.n_heads = n_heads
+
         # This sets the size of the keys, values, and queries (self.d_k) to all 
         # be equal to the number of output units divided by the number of heads.
         self.d_k = n_units // n_heads
+
         # This requires the number of n_heads to evenly divide n_units.
-        assert n_units % n_heads == 0
-        self.n_units = n_units 
+        assert n_units % n_heads == 0, \
+            "Make sure n_heads (given: {}) divides n_units (given: {})!".format(
+                n_heads, n_units)
 
         # TODO: create/initialize any necessary parameters or layers
+
+    def init_weights(self):
         # Initialize all weights and biases uniformly in the range [-k, k],
         # where k is the square root of 1/n_units.
         # Note: the only Pytorch modules you are allowed to use are nn.Linear 
@@ -540,6 +556,8 @@ class MultiHeadedAttention(nn.Module):
         # As described in the .tex, apply input masking to the softmax 
         # generating the "attention values" (i.e. A_i in the .tex)
         # Also apply dropout to the attention values.
+
+
 
         return # size: (batch_size, seq_len, self.n_units)
 
