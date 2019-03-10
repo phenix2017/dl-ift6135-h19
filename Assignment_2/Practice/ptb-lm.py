@@ -194,7 +194,7 @@ else:
       of memory. \n You can try setting batch_size=1 to reduce memory usage")
     device = torch.device("cpu")
 
-# device = torch.device("cpu")
+device = torch.device("cpu")
 
 ###############################################################################
 #
@@ -463,6 +463,8 @@ for epoch in range(num_epochs):
 
     # SAVE MODEL IF IT'S THE BEST SO FAR
     if val_ppl < best_val_so_far:
+        best_epoch = epoch
+        best_train_so_far = train_ppl
         best_val_so_far = val_ppl
         if args.save_best:
             print("Saving model parameters to best_params.pt")
@@ -498,6 +500,12 @@ np.save(lc_path, {'train_ppls':train_ppls,
                   'val_ppls':val_ppls, 
                   'train_losses':train_losses,
                   'val_losses':val_losses})
+
+log_str = 'BEST epoch: ' + str(best_epoch) + '\t' \
+            + 'train ppl: ' + str(best_train_so_far) + '\t' \
+            + 'val ppl: ' + str(best_val_so_far)
+print(log_str)
+
 # NOTE ==============================================
 # To load these, run 
 # >>> x = np.load(lc_path)[()]

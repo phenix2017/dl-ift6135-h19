@@ -265,7 +265,7 @@ class RNN(nn.Module):
 # Problem 2
 
 # Saving model parameters to best_params.pt
-# epoch: 27       train ppl: 116.95518721792156   val ppl: 124.60737873390084     best val: 124.60737873390084    time (s) spent in epoch: 190.69589734077454
+# epoch: 27       train ppl: 65.78468066065138    val ppl: 102.65906560364691     best val: 102.65906560364691    time (s) spent in epoch: 196.040709733963
 
 class GRU_cell(nn.Module):
     def __init__(self, x_dim, h_dim, dp_keep_prob):
@@ -519,7 +519,38 @@ and a linear layer followed by a softmax.
 
 #-------------------------------------------------------------------------------
 
-# TODO: implement this class
+class Attention(nn.Module):
+    def __init__(self, n_units, d_k, dropout_p):
+        super(Attention, self).__init__()
+
+        self.n_units = n_units
+        self.d_k = d_k
+
+        self.WQ = nn.Linear(n_units, d_k, bias=False)
+        self.WK = nn.Linear(n_units, d_k, bias=False)
+        self.WV = nn.Linear(n_units, d_k, bias=False)
+
+        self.dropout = nn.Dropout(p=dropout_p)
+
+    def forward(self, Q, K, V, s):
+        # Q, K, V : (batch_size, seq_len, self.n_units)
+        Q_x_WQ = self.WQ(Q)
+        K_x_WK = self.WK(K)
+        x = torch.bmm(Q_x_WQ, K_x_WK.transpose(1, 2))/torch.sqrt(self.d_k)
+
+        # Softmax (Attention)
+        x_tild = x*s - 1e9*(1 - s)
+        A = x_tild/x_tild.sum(dim=-1, keepdim=True)
+
+        # Dropout to attention
+        A = self.dropout(A)
+
+        # Output
+        H = torch.bmm(A, self.WV(V))
+
+        return H
+
+
 class MultiHeadedAttention(nn.Module):
     def __init__(self, n_heads, n_units, dropout=0.1):
         """
@@ -528,8 +559,8 @@ class MultiHeadedAttention(nn.Module):
         dropout: probability of DROPPING units
         """
         super(MultiHeadedAttention, self).__init__()
-        self.n_units = n_units
         self.n_heads = n_heads
+        self.n_units = n_units
 
         # This sets the size of the keys, values, and queries (self.d_k) to all 
         # be equal to the number of output units divided by the number of heads.
@@ -540,27 +571,34 @@ class MultiHeadedAttention(nn.Module):
             "Make sure n_heads (given: {}) divides n_units (given: {})!".format(
                 n_heads, n_units)
 
-        # TODO: create/initialize any necessary parameters or layers
+        # Multi-Headed Attention
+        self.attn_layers = nn.ModuleList()
+        for i in range(n_heads):
+            self.attn_layers.append(Attention(n_units, d_k, dropout))
+
+        # Wo
+        self.Wo = nn.Linear(n_units, n_units)
 
     def init_weights(self):
         # Initialize all weights and biases uniformly in the range [-k, k],
         # where k is the square root of 1/n_units.
         # Note: the only Pytorch modules you are allowed to use are nn.Linear 
         # and nn.Dropout
+        return
 
     def forward(self, query, key, value, mask=None):
-        # TODO: implement the masked multi-head attention.
         # query, key, and value all have size:
-        # (batch_size, seq_len, self.n_units, self.d_k),
+        # (batch_size, seq_len, self.n_units),
         # mask has size: (batch_size, seq_len, seq_len)
-        # As described in the .tex, apply input masking to the softmax 
-        # generating the "attention values" (i.e. A_i in the .tex)
-        # Also apply dropout to the attention values.
 
+        H = torch.empty(query.shape[0], query.shape[1], 0)
+        for attn in self.attn_layers:
+            H = torch.cat((H, attn(query, key, value, mask)), dim=-1)
 
+        # out: (batch_size, seq_len, self.n_units)
+        out = self.Wo(H)
 
-        return # size: (batch_size, seq_len, self.n_units)
-
+        return out
 
 #-------------------------------------------------------------------------------
 # The encodings of elements of the input sequence
@@ -595,7 +633,6 @@ class PositionalEncoding(nn.Module):
         x = x + Variable(self.pe[:, :x.size(1)], 
                          requires_grad=False)
         return self.dropout(x)
-
 
 
 #-------------------------------------------------------------------------------
@@ -640,7 +677,7 @@ class FullTransformer(nn.Module):
         self.transformer_stack = transformer_stack
         self.embedding = embedding
         self.output_layer = nn.Linear(n_units, vocab_size)
-        
+
     def forward(self, input_sequence, mask):
         embeddings = self.embedding(input_sequence)
         return F.log_softmax(self.output_layer(self.transformer_stack(embeddings, mask)), dim=-1)
@@ -659,11 +696,12 @@ def make_model(vocab_size, n_blocks=6,
         n_units=n_units,
         vocab_size=vocab_size
         )
-    
+
     # Initialize parameters with Glorot / fan_avg.
     for p in model.parameters():
         if p.dim() > 1:
             nn.init.xavier_uniform_(p)
+
     return model
 
 
