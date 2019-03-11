@@ -602,7 +602,8 @@ class MultiHeadedAttention(nn.Module):
         nn.init.uniform_(self.Wo.weight.data,
                          a=-np.sqrt(1/self.n_units), b=np.sqrt(1/self.n_units))
         if self.Wo.bias is not None:
-            nn.init.zeros_(self.Wo.bias.data)
+            nn.init.uniform_(self.Wo.bias.data,
+                         a=-np.sqrt(1/self.n_units), b=np.sqrt(1/self.n_units))
         for attn in self.attn_layers:
             attn.init_weights_uniform()
 
