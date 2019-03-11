@@ -194,7 +194,7 @@ else:
       of memory. \n You can try setting batch_size=1 to reduce memory usage")
     device = torch.device("cpu")
 
-device = torch.device("cpu")
+# device = torch.device("cpu")
 
 ###############################################################################
 #
