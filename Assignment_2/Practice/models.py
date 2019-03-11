@@ -536,7 +536,7 @@ class Attention(nn.Module):
         # Q, K, V : (batch_size, seq_len, self.n_units)
         Q_x_WQ = self.WQ(Q)
         K_x_WK = self.WK(K)
-        x = torch.bmm(Q_x_WQ, K_x_WK.transpose(1, 2))/torch.sqrt(self.d_k)
+        x = torch.bmm(Q_x_WQ, K_x_WK.transpose(1, 2))/np.sqrt(self.d_k)
 
         # Softmax (Attention)
         x_tild = x*s - 1e9*(1 - s)
@@ -574,7 +574,7 @@ class MultiHeadedAttention(nn.Module):
         # Multi-Headed Attention
         self.attn_layers = nn.ModuleList()
         for i in range(n_heads):
-            self.attn_layers.append(Attention(n_units, d_k, dropout))
+            self.attn_layers.append(Attention(n_units, self.d_k, dropout))
 
         # Wo
         self.Wo = nn.Linear(n_units, n_units)
@@ -593,7 +593,7 @@ class MultiHeadedAttention(nn.Module):
 
         H = torch.empty(query.shape[0], query.shape[1], 0)
         for attn in self.attn_layers:
-            H = torch.cat((H, attn(query, key, value, mask)), dim=-1)
+            H = torch.cat((H, attn(query, key, value, mask.float())), dim=-1)
 
         # out: (batch_size, seq_len, self.n_units)
         out = self.Wo(H)
