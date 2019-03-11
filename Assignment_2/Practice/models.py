@@ -552,13 +552,15 @@ class Attention(nn.Module):
 
         # Softmax (Attention)
         x_tild = x*s - 1e9*(1 - s)
-        A = x_tild/x_tild.sum(dim=-1, keepdim=True)
+        exp_x_tild = torch.exp(x_tild)
+        A = exp_x_tild/exp_x_tild.sum(dim=-1, keepdim=True)
 
         # Dropout to attention
         A = self.dropout(A)
 
         # Output
-        H = torch.bmm(A, self.WV(V))
+        V_x_WV = self.WV(V)
+        H = torch.bmm(A, V_x_WV)
 
         return H
 
@@ -611,8 +613,9 @@ class MultiHeadedAttention(nn.Module):
 
         H = torch.empty((query.shape[0], query.shape[1], 0),
                         device=query.device)
+        mask = mask.float()
         for attn in self.attn_layers:
-            H = torch.cat((H, attn(query, key, value, mask.float())), dim=-1)
+            H = torch.cat((H, attn(query, key, value, mask)), dim=-1)
 
         # out: (batch_size, seq_len, self.n_units)
         out = self.Wo(H)
