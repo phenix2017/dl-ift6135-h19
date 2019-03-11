@@ -526,11 +526,16 @@ class Attention(nn.Module):
         self.n_units = n_units
         self.d_k = d_k
 
-        self.WQ = nn.Linear(n_units, d_k, bias=False)
-        self.WK = nn.Linear(n_units, d_k, bias=False)
-        self.WV = nn.Linear(n_units, d_k, bias=False)
+        self.WQ = nn.Linear(n_units, d_k, bias=True)
+        self.WK = nn.Linear(n_units, d_k, bias=True)
+        self.WV = nn.Linear(n_units, d_k, bias=True)
 
         self.dropout = nn.Dropout(p=dropout_p)
+
+    def init_weights_uniform(self):
+        self.init_weight_and_bias_uniform(self.WQ, self.n_units)
+        self.init_weight_and_bias_uniform(self.WK, self.n_units)
+        self.init_weight_and_bias_uniform(self.WV, self.n_units)
 
     def forward(self, Q, K, V, s):
         # Q, K, V : (batch_size, seq_len, self.n_units)
@@ -577,21 +582,32 @@ class MultiHeadedAttention(nn.Module):
             self.attn_layers.append(Attention(n_units, self.d_k, dropout))
 
         # Wo
-        self.Wo = nn.Linear(n_units, n_units)
+        self.Wo = nn.Linear(n_units, n_units, bias=True)
 
-    def init_weights(self):
+        # Init weights
+        self.init_weights_uniform()
+
+    def init_weight_and_bias_uniform(self, W, k):
+        nn.init.uniform_(W.weight.data,
+                         a=-np.sqrt(1/k), b=np.sqrt(1/k))
+        if W.bias is not None:
+            nn.init.uniform_(W.bias.data,
+                             a=-np.sqrt(1/k), b=np.sqrt(1/k))
+
+    def init_weights_uniform(self):
         # Initialize all weights and biases uniformly in the range [-k, k],
         # where k is the square root of 1/n_units.
-        # Note: the only Pytorch modules you are allowed to use are nn.Linear 
-        # and nn.Dropout
-        return
+        self.init_weight_and_bias_uniform(self.Wo, self.n_units)
+        for attn in self.attn_layers:
+            attn.init_weights_uniform()
 
     def forward(self, query, key, value, mask=None):
         # query, key, and value all have size:
         # (batch_size, seq_len, self.n_units),
         # mask has size: (batch_size, seq_len, seq_len)
 
-        H = torch.empty(query.shape[0], query.shape[1], 0)
+        H = torch.empty((query.shape[0], query.shape[1], 0),
+                        device=query.device)
         for attn in self.attn_layers:
             H = torch.cat((H, attn(query, key, value, mask.float())), dim=-1)
 
