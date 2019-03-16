@@ -551,8 +551,9 @@ class Attention(nn.Module):
 
         # Softmax (Attention)
         x_tild = x*s - 1e9*(1 - s)
-        exp_x_tild = torch.exp(x_tild)
-        A = exp_x_tild/exp_x_tild.sum(dim=-1, keepdim=True)
+        # exp_x_tild = torch.exp(x_tild)
+        # A = exp_x_tild/exp_x_tild.sum(dim=-1, keepdim=True)
+        A = F.softmax(x_tild, dim=-1)
 
         # Dropout to attention
         A = self.dropout(A)
