@@ -460,7 +460,6 @@ for epoch in range(num_epochs):
     print("Valid")
     val_ppl, val_loss = run_epoch(model, valid_data)
 
-
     # SAVE MODEL IF IT'S THE BEST SO FAR
     if val_ppl < best_val_so_far:
         best_epoch = epoch
@@ -499,7 +498,8 @@ print('\nDONE\n\nSaving learning curves to '+lc_path)
 np.save(lc_path, {'train_ppls':train_ppls, 
                   'val_ppls':val_ppls, 
                   'train_losses':train_losses,
-                  'val_losses':val_losses})
+                  'val_losses':val_losses,
+                  'times':times})
 
 log_str = 'BEST epoch: ' + str(best_epoch) + '\t' \
             + 'train ppl: ' + str(best_train_so_far) + '\t' \

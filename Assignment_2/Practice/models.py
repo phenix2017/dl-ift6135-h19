@@ -519,6 +519,11 @@ and a linear layer followed by a softmax.
 
 #-------------------------------------------------------------------------------
 
+# BEST epoch: 31  train ppl: 61.645602382537064   val ppl: 147.71810281606525
+# Saving model parameters to best_params.pt
+# epoch: 31       train ppl: 61.645602382537064   val ppl: 147.71810281606525     best val: 147.71810281606525    time (s) spent in epoch: 65.50611448287964
+
+
 class Attention(nn.Module):
     def __init__(self, n_units, d_k, dropout_p):
         super(Attention, self).__init__()
