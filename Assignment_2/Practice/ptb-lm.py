@@ -49,7 +49,7 @@
 #      perplexities:
 #                  RNN: train:  120  val: 157
 #                  GRU: train:   65  val: 104
-#          TRANSFORMER:  train:  77  val: 152
+#          TRANSFORMER:  train:  67  val: 146
 #    - For Problem 4.2 (exploration of optimizers), you will make use of the 
 #      experiments from 4.1, and should additionally run the following experiments:
 #          --model=RNN --optimizer=SGD --initial_lr=0.0001 --batch_size=20 --seq_len=35 --hidden_size=1500 --num_layers=2 --dp_keep_prob=0.35 
@@ -161,7 +161,7 @@ print(argsdict)
 # Use the model, optimizer, and the flags passed to the script to make the 
 # name for the experimental dir
 print("\n########## Setting Up Experiment ######################")
-flags = [flag.lstrip('--') for flag in sys.argv[1:]]
+flags = [flag.lstrip('--').replace('/', '').replace('\\', '') for flag in sys.argv[1:]]
 experiment_path = os.path.join(args.save_dir+'_'.join([argsdict['model'],
                                          argsdict['optimizer']] 
                                          + flags))

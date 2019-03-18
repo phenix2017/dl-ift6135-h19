@@ -24,7 +24,7 @@ for d in dirs:
     times_all.append(times)
 
 # Plot
-# plt.figure(figsize=(15, 20))
+plt.figure(figsize=(5, 10))
 
 # vs epochs
 plt.subplot(211)
@@ -50,10 +50,10 @@ for i in range(len(dirs)):
     plt.title("PPL vs Wall clock time")
     # plt.ylabel("PPL (in log scale)")
     plt.ylabel("PPL")
-    plt.xlabel("Wall clock time")
+    plt.xlabel("Wall clock time (seconds)")
 
 # plt.subplots_adjust(hspace=.5)
 
-plt.savefig('1_model_compare.png', bbox_inches='tight', pad_inches=0.5)
+plt.savefig('1_model_compare.png', bbox_inches='tight', pad_inches=0.2)
 plt.clf()
 plt.close()
