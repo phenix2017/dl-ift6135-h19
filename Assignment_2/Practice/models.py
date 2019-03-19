@@ -224,7 +224,7 @@ class RNN(nn.Module):
         emb_input = self.emb_layer(samples)    # (1, batch_size, emb_size)
 
         # For each time step
-        for t in range(self.seq_len):
+        for t in range(generated_seq_len):
 
             # Next hidden layer
             hidden_next_t = []
@@ -250,7 +250,7 @@ class RNN(nn.Module):
             # Get output at this time step
             h_layer_out_dropout = self.out_dropout(input_l)
             logits = self.out_layer(h_layer_out_dropout)
-            token_out = torch.argmax(nn.Softmax()(logits), dim=1) # (batch_size)
+            token_out = torch.argmax(F.softmax(logits, dim=1), dim=1) # (batch_size)
             token_out = token_out.detach().view(1, -1)      # (1, batch_size)
 
             # Append output to samples
@@ -422,7 +422,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
         emb_input = self.emb_layer(samples)     # (1, batch_size, emb_size)
 
         # For each time step
-        for t in range(self.seq_len):
+        for t in range(generated_seq_len):
 
             # Input at this time step at the first layer
             input_l = emb_input[0]      # (batch_size, emb_size)
@@ -448,7 +448,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
             # Get output at this time step
             h_layer_out_dropout = self.out_dropout(input_l)
             logits = self.out_layer(h_layer_out_dropout)
-            token_out = torch.argmax(nn.Softmax()(logits), dim=1) # (batch_size)
+            token_out = torch.argmax(F.softmax(logits, dim=1), dim=1) # (batch_size)
             token_out = token_out.detach().view(1, -1)      # (1, batch_size)
 
             # Append output to samples

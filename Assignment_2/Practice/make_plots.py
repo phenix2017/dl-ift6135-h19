@@ -24,7 +24,7 @@ for d in dirs:
     times_all.append(times)
 
 # Plot
-plt.figure(figsize=(5, 10))
+plt.figure(figsize=(10, 12))
 
 # vs epochs
 plt.subplot(211)
