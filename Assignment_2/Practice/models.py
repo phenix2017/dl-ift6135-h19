@@ -249,9 +249,10 @@ class RNN(nn.Module):
 
             # Get output at this time step
             h_layer_out_dropout = self.out_dropout(input_l)
-            logits = self.out_layer(h_layer_out_dropout)
-            token_out = torch.argmax(F.softmax(logits, dim=1), dim=1) # (batch_size)
-            token_out = token_out.detach().view(1, -1)      # (1, batch_size)
+            logits = self.out_layer(h_layer_out_dropout).detach()
+            probs = F.softmax(logits, dim=1)    # (batch_size, vocab_size)
+            token_out = Categorical(probs=probs).sample()   # (batch_size)
+            token_out = token_out.view(1, -1)               # (1, batch_size)
 
             # Append output to samples
             samples = torch.cat((samples, token_out), dim=0)
@@ -359,6 +360,8 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
         # Initialize all weights
         self.init_weights_uniform()
 
+        from torch.distributions.categorical import Categorical
+
     def init_weights_uniform(self):
         # Initialize the embedding and output weights uniformly in the range
         # [-0.1, 0.1] and the embedding and output biases to 0 (in place).
@@ -447,9 +450,10 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
 
             # Get output at this time step
             h_layer_out_dropout = self.out_dropout(input_l)
-            logits = self.out_layer(h_layer_out_dropout)
-            token_out = torch.argmax(F.softmax(logits, dim=1), dim=1) # (batch_size)
-            token_out = token_out.detach().view(1, -1)      # (1, batch_size)
+            logits = self.out_layer(h_layer_out_dropout).detach()
+            probs = F.softmax(logits, dim=1)
+            token_out = Categorical(probs=probs).sample()   # (batch_size)
+            token_out = token_out.view(1, -1)               # (1, batch_size)
 
             # Append output to samples
             samples = torch.cat((samples, token_out), dim=0)
