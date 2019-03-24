@@ -274,7 +274,7 @@ def generate_samples(model_name, model_state_dict_path, generated_seq_len, num_o
     model.zero_grad()
     hidden = model.init_hidden().to(device)
     samples = model.generate(inputs, hidden, generated_seq_len-1) # (seq_len, batch_size)
-    sample_words = [' '.join([id_2_word[t] for t in seq]) for seq in samples.numpy().T]
+    sample_words = [' '.join([id_2_word[t] for t in seq]) for seq in samples.detach().cpu().numpy().T]
     return sample_words
 
 # RNN
