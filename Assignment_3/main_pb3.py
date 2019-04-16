@@ -78,7 +78,7 @@ class trainer():
         return loss, kl.mean(), output
 
     def get_loss_dis(self, real):
-        fake = self.model.generate()
+        fake = self.model.generate(self.device)
 
         out_real, out_fake = self.model.discriminate(real), self.model.discriminate(fake)
 
@@ -89,7 +89,7 @@ class trainer():
         return loss
 
     def get_loss_gen(self):
-        fake = self.model.generate()
+        fake = self.model.generate(self.device)
         out_fake = self.model.discriminate(fake)
 
         loss = -out_fake.mean()
@@ -101,7 +101,7 @@ class trainer():
         writer.add_scalars('losses', {'dis':loss_dis,
                                       'gen':loss_gen}, step)
 
-        sample = self.model.generate()[0]
+        sample = self.model.generate(self.device)[0]
 
 
         writer.add_image('generated', sample, global_step = step)

@@ -78,9 +78,9 @@ class GAN(nn.Module):
         self.generator = Generator(args)
         self.discriminator = Discriminator_big(args)
 
-    def generate(self,latent = None):
+    def generate(self,device, latent = None):
         if latent == None :
-            latent = torch.randn(self.args.batch_size, self.args.latent_dim)
+            latent = torch.randn(self.args.batch_size, self.args.latent_dim, device = device)
 
         output = self.generator(latent)
         return output

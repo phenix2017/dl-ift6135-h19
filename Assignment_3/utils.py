@@ -59,22 +59,22 @@ def get_kl( q_loc, q_logvar) :
     return kl
 
 def calc_gradient_penalty(net, real_data, fake_data, lam = 10):
-    alpha = torch.rand(real_data.size()[0], 1)
+    alpha = torch.rand(real_data.size()[0], 1, device=real_data.device).unsqueeze(-1).unsqueeze(-1)
+
     alpha = alpha.expand(real_data.size()).to(real_data.device)
 
-    interpolates = alpha * real_data + ((1 - alpha) * fake_data)
+    interpolates = alpha * real_data + ((1 - alpha) * fake_data[:real_data.size()[0]])
 
-
-    interpolates = autograd.Variable(interpolates, requires_grad=True)
+    interpolates = autograd.Variable(interpolates, requires_grad=True).to(real_data.device)
 
     disc_interpolates = net(interpolates)
 
     gradients = autograd.grad(outputs=disc_interpolates, inputs=interpolates,
-                              grad_outputs= torch.ones(
-                                  disc_interpolates.size()),
+                              grad_outputs=torch.ones(
+                                  disc_interpolates.size(), device=real_data.device),
                               create_graph=True, retain_graph=True, only_inputs=True)[0]
 
-    gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean()*lam
+    gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * lam
 
     return gradient_penalty
 
