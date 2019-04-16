@@ -45,14 +45,14 @@ class trainer():
         writer = SummaryWriter(self.args.log_path)
         step =0
 
-        optim_dis = torch.optim.Adam(self.model.discriminator.parameters(),betas=(0.5,0.9),lr = 1e-4)
-        optim_gen = torch.optim.Adam(self.model.generator.parameters(),betas=(0.5,0.9),lr = 1e-4)
+        optim_dis = torch.optim.Adam(self.model.discriminator.parameters(),betas=(0.,0.9),lr = 1e-4)
+        optim_gen = torch.optim.Adam(self.model.generator.parameters(),betas=(0.,0.9),lr = 1e-4)
 
         for epoch in range(num_epochs):
 
             for i, (x, y) in enumerate(train):
-                real = x
-                for j in range(5):
+                real = x.to(self.device)
+                for j in range(10):
                     loss_dis = self.get_loss_dis(real)
                     optim_dis.zero_grad()
                     loss_dis.backward()
@@ -64,7 +64,7 @@ class trainer():
                 optim_gen.step()
 
 
-            step = self.store_logs_gan(writer, step, loss_dis, loss_gen)
+                step = self.store_logs_gan(writer, step, loss_dis, loss_gen)
 
 
 
@@ -131,9 +131,9 @@ if __name__=='__main__':
 
     args.latent_dim = 100
     args.batch_size = 32
-    args.use_cuda = False
-    #args.log_path = '/network/home/assouelr/DL_assignment/logs/vae/'
-    args.log_path = '/Users/rimassouel/PycharmProjects/DL_assignment/logs/wgan/'
+    args.use_cuda = True
+    args.log_path = '/network/home/assouelr/DL_assignment/logs/wgan/'
+    #args.log_path = '/Users/rimassouel/PycharmProjects/DL_assignment/logs/wgan/'
 
     args.mode = 'gan'
     runner = trainer(args)
