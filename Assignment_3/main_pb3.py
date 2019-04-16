@@ -38,6 +38,7 @@ class trainer():
                 optim.step()
 
             step = self.store_logs_vae(writer, step, loss, kl, out, x)
+            self.save(epoch)
 
 
     def train_gan(self, num_epochs):
@@ -45,8 +46,8 @@ class trainer():
         writer = SummaryWriter(self.args.log_path)
         step =0
 
-        optim_dis = torch.optim.Adam(self.model.discriminator.parameters(),betas=(0.,0.9),lr = 1e-4)
-        optim_gen = torch.optim.Adam(self.model.generator.parameters(),betas=(0.,0.9),lr = 1e-4)
+        optim_dis = torch.optim.Adam(self.model.discriminator.parameters(),betas=(0.5,0.9),lr = 1e-4)
+        optim_gen = torch.optim.Adam(self.model.generator.parameters(),betas=(0.5,0.9),lr = 1e-4)
 
         for epoch in range(num_epochs):
 
@@ -65,6 +66,8 @@ class trainer():
 
 
                 step = self.store_logs_gan(writer, step, loss_dis, loss_gen)
+
+            self.save(epoch)
 
 
 
@@ -122,6 +125,10 @@ class trainer():
         step +=1
         return step
 
+    def save(self, step):
+        torch.save(self.model.cpu().state_dict(), self.args.save_path + self.args.saving_file + '_' + str(step) + '.pt')
+        self.agent.to(self.device)
+
 
 
 
@@ -133,6 +140,8 @@ if __name__=='__main__':
     args.batch_size = 32
     args.use_cuda = True
     args.log_path = '/network/home/assouelr/DL_assignment/logs/wgan/'
+    args.save_path = '/network/home/assouelr/DL_assignment/weights/wgan/'
+    args.saving_file = 'wgan_0_09'
     #args.log_path = '/Users/rimassouel/PycharmProjects/DL_assignment/logs/wgan/'
 
     args.mode = 'gan'
