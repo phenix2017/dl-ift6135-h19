@@ -6,7 +6,10 @@ from torch import nn
 import numpy as np
 import torchvision.transforms as transforms
 image_transform = transforms.Compose([
-    transforms.ToTensor()
+    transforms.ToTensor(),
+
+transforms.Normalize((.5, .5, .5),
+                             (.5, .5, .5))
 
 ])
 
