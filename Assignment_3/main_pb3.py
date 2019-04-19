@@ -3,6 +3,7 @@ import datetime
 import numpy as np
 import os
 import torch
+import tqdm
 
 from tensorboardX import SummaryWriter
 
@@ -47,14 +48,14 @@ class trainer():
         train, valid, test = get_data_loader(self.args.dataset_location, 32)
         self.dataloader = train
         writer = SummaryWriter(self.args.log_path)
-        step =0
+        step = 0
 
-        optim_dis = torch.optim.Adam(self.model.discriminator.parameters(),betas=(0.5,0.9),lr = 1e-4)
-        optim_gen = torch.optim.Adam(self.model.generator.parameters(),betas=(0.5,0.9),lr = 1e-4)
+        optim_dis = torch.optim.Adam(self.model.discriminator.parameters(), betas=(0.5,0.9),lr=1e-4)
+        optim_gen = torch.optim.Adam(self.model.generator.parameters(), betas=(0.5,0.9),lr=1e-4)
 
-        for epoch in range(num_epochs):
+        for epoch in tqdm.tqdm(range(num_epochs)):
 
-            for j in range(10):
+            for j in range(5):
                 real, _ = self.get_real_samples()
                 loss_dis = self.get_loss_dis(real)
                 optim_dis.zero_grad()
@@ -138,7 +139,7 @@ class trainer():
 
     def save(self, step):
         torch.save(self.model.cpu().state_dict(), os.path.join(self.args.save_path, self.args.saving_file + '_' + str(step) + '.pt'))
-        self.agent.to(self.device)
+        self.model.to(self.device)
 
 
 if __name__=='__main__':
@@ -150,6 +151,12 @@ if __name__=='__main__':
     args.use_cuda = True
     args.log_path = '/scratch/voletivi/wgan/{0:%Y%m%d_%H%M%S}_wgan'.format(datetime.datetime.now())
     args.save_path = os.path.join(args.log_path, 'weights')
+    if not os.path.exists(args.log_path):
+        os.makedirs(args.log_path)
+
+    if not os.path.exists(args.save_path):
+        os.makedirs(args.save_path)
+
     args.saving_file = 'ckpt'
     args.dataset_location = '/scratch/voletivi/Datasets/SVHN'
     #args.log_path = '/Users/rimassouel/PycharmProjects/DL_assignment/logs/wgan/'
