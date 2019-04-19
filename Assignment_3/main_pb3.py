@@ -1,9 +1,13 @@
-import torch
+import argparse
+import datetime
 import numpy as np
+import os
+import torch
+
+from tensorboardX import SummaryWriter
+
 from model import *
 from utils import *
-from tensorboardX import SummaryWriter
-import argparse
 
 
 class trainer():
@@ -13,7 +17,6 @@ class trainer():
         self.device = torch.device('cpu')
         if self.args.use_cuda :
             self.device = torch.device('cuda')
-
 
         if args.mode =='vae':
             self.model = VAE(args).to(self.device)
@@ -26,7 +29,6 @@ class trainer():
         step = 0
 
         optim = torch.optim.Adam(self.model.parameters(),  lr=3e-4)
-
 
         for epoch in range(num_epochs):
             for i, (x, y) in enumerate(train):
@@ -42,7 +44,8 @@ class trainer():
 
 
     def train_gan(self, num_epochs):
-        train, valid, test = get_data_loader("svhn", 32)
+        train, valid, test = get_data_loader(self.args.dataset_location, 32)
+        self.dataloader = train
         writer = SummaryWriter(self.args.log_path)
         step =0
 
@@ -51,24 +54,33 @@ class trainer():
 
         for epoch in range(num_epochs):
 
-            for i, (x, y) in enumerate(train):
-                real = x.to(self.device)
-                for j in range(10):
-                    loss_dis = self.get_loss_dis(real)
-                    optim_dis.zero_grad()
-                    loss_dis.backward()
-                    optim_dis.step()
+            for j in range(10):
+                real, _ = self.get_real_samples()
+                loss_dis = self.get_loss_dis(real)
+                optim_dis.zero_grad()
+                loss_dis.backward()
+                optim_dis.step()
 
-                loss_gen = self.get_loss_gen()
-                optim_gen.zero_grad()
-                loss_gen.backward()
-                optim_gen.step()
+            loss_gen = self.get_loss_gen()
+            optim_gen.zero_grad()
+            loss_gen.backward()
+            optim_gen.step()
 
-
-                step = self.store_logs_gan(writer, step, loss_dis, loss_gen)
+            step = self.store_logs_gan(writer, step, loss_dis, loss_gen)
 
             self.save(epoch)
 
+
+    def get_real_samples(self):
+        try:
+            yield_values = next(self.dataloader)
+        except:
+            self.data_iter = iter(self.dataloader)
+            yield_values = next(self.data_iter)
+
+        real_images, real_labels = yield_values
+        real_images, real_labels = real_images.to(self.device), real_labels.to(self.device)
+        return real_images, real_labels
 
 
     def get_loss_vae(self, real ):
@@ -106,7 +118,6 @@ class trainer():
 
         sample = self.model.generate(self.device)[0]
 
-
         writer.add_image('generated', sample, global_step = step)
 
         step +=1
@@ -126,10 +137,8 @@ class trainer():
         return step
 
     def save(self, step):
-        torch.save(self.model.cpu().state_dict(), self.args.save_path + self.args.saving_file + '_' + str(step) + '.pt')
+        torch.save(self.model.cpu().state_dict(), os.path.join(self.args.save_path, self.args.saving_file + '_' + str(step) + '.pt'))
         self.agent.to(self.device)
-
-
 
 
 if __name__=='__main__':
@@ -139,23 +148,12 @@ if __name__=='__main__':
     args.latent_dim = 100
     args.batch_size = 32
     args.use_cuda = True
-    args.log_path = '/network/home/assouelr/DL_assignment/logs/wgan/'
-    args.save_path = '/network/home/assouelr/DL_assignment/weights/wgan/'
-    args.saving_file = 'wgan_0_09'
+    args.log_path = '/scratch/voletivi/wgan/{0:%Y%m%d_%H%M%S}_wgan'.format(datetime.datetime.now())
+    args.save_path = os.path.join(args.log_path, 'weights')
+    args.saving_file = 'ckpt'
+    args.dataset_location = '/scratch/voletivi/Datasets/SVHN'
     #args.log_path = '/Users/rimassouel/PycharmProjects/DL_assignment/logs/wgan/'
 
     args.mode = 'gan'
     runner = trainer(args)
-    runner.train_gan(100)
-
-
-
-
-
-
-
-
-
-
-
-
+    runner.train_gan(10000)
