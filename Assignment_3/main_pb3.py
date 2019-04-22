@@ -64,7 +64,7 @@ class trainer():
 
             for j in range(5):
                 real, _ = self.get_real_samples()
-                if(j==0 and epoch%50==0):
+                if(j==0 and epoch%self.args.save_every==0):
                     loss_dis = self.get_loss_dis(real, True, epoch)
                 else:
                     loss_dis = self.get_loss_dis(real)                    
@@ -83,8 +83,10 @@ class trainer():
 
             step = self.store_logs_gan(writer, step, loss_dis, loss_gen)
 
-            self.save(epoch)
+            if(epoch%self.args.save_every==0 and epoch>0):
+                self.save(epoch)
 
+        generate_latent_walk(epoch)
 
     def get_real_samples(self):
         try:
@@ -166,16 +168,16 @@ class trainer():
         self.model.load_state_dict(torch.load(self.args.save_path, self.args.saving_file + '_' + str(step) + '.pt'))
         self.model.to(self.device)
 
-    def save_model(self):
-        torch.save(self.model.generator.state_dict(), './generator.pkl')
-        torch.save(self.model.discriminator.state_dict(), './discriminator.pkl')
-        print('Models save to ./generator.pkl & ./discriminator.pkl ')
+    # def save_model(self):
+    #     torch.save(self.model.generator.state_dict(), './generator.pkl')
+    #     torch.save(self.model.discriminator.state_dict(), './discriminator.pkl')
+    #     print('Models save to ./generator.pkl & ./discriminator.pkl ')
 
-    def load_model(self, D_model_path, G_model_path):
-        self.model.discriminator.load_state_dict(torch.load(D_model_path))
-        self.model.generator.load_state_dict(torch.load(G_model_path))
-        print('Generator model loaded from {}.'.format(G_model_path))
-        print('Discriminator model loaded from {}-'.format(D_model_path))
+    # def load_model(self, D_model_path, G_model_path):
+    #     self.model.discriminator.load_state_dict(torch.load(D_model_path))
+    #     self.model.generator.load_state_dict(torch.load(G_model_path))
+    #     print('Generator model loaded from {}.'.format(G_model_path))
+    #     print('Discriminator model loaded from {}-'.format(D_model_path))
 
     def generate_latent_walk(self, number):
         if not os.path.exists('interpolated_images/'):
@@ -210,10 +212,13 @@ class trainer():
         if not os.path.exists('interpolated_images/'):
             os.makedirs('interpolated_images/')
 
+        sigma_mean = torch.ones((100))
+        mu_mean = torch.zeros((100))
+
         # Interpolate between twe noise(z1, z2) with number_int steps between
         number_int = 10
         z_intp = torch.FloatTensor(1, 100, 1, 1)
-        z1 = torch.randn(1, 100, 1, 1)
+        z1 = torch.randn(1, 100, 1, 1)          ### ? ?
         z2 = torch.randn(1, 100, 1, 1)
         if self.cuda:
             z_intp = z_intp.cuda()
@@ -236,6 +241,43 @@ class trainer():
         print("Saved interpolated images to interpolated_images/interpolated_{}.".format(str(number).zfill(3)))
 
 
+    def stub():
+            # Save generated variable images :
+            var_z = betavae.encoder(var_x)
+            mu_z, log_var_z = torch.chunk(var_z, 2, dim=1 )
+            mu_mean /= batch_size
+            
+            sigma_mean /= batch_size
+            gen_images = None
+
+            for latent in range(z_dim) :
+                #var_z0 = torch.stack( [mu_mean]*nbr_steps, dim=0)
+                #var_z0 = torch.zeros(nbr_steps, z_dim)
+                var_z0 = mu_z.cpu().data
+                val = mu_mean[latent]-sigma_mean[latent]
+                step = 2.0*sigma_mean[latent]/nbr_steps
+                print(latent,mu_mean[latent],step)
+                for i in range(nbr_steps) :
+                    var_z0[i] = mu_mean
+                    var_z0[i][latent] = val
+                    val += step
+
+                var_z0 = Variable(var_z0)
+                if use_cuda :
+                    var_z0 = var_z0.cuda()
+
+
+                gen_images_latent = betavae.decoder(var_z0)
+                gen_images_latent = gen_images_latent.view(-1, img_depth, img_dim, img_dim).cpu().data
+                if gen_images is None :
+                    gen_images = gen_images_latent
+                else :
+                    gen_images = torch.cat( [gen_images,gen_images_latent], dim=0)
+
+            #torchvision.utils.save_image(gen_images.data.cpu(),'./beta-data/{}/gen_images/dim{}/{}.png'.format(path,latent,(epoch+1)) )
+            torchvision.utils.save_image(255.0*gen_images,'./beta-data/{}/gen_images/{}.png'.format(path,(epoch)) )
+
+
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
@@ -254,7 +296,7 @@ if __name__=='__main__':
 
     args.saving_file = 'ckpt'
     args.dataset_location = '/network/home/guptagun/code/dl'
-
+    args.save_every = 50
     args.mode = 'gan'
     runner = trainer(args)
     runner.train_gan(100)
