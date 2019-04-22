@@ -102,28 +102,25 @@ class Generator(torch.nn.Module):
         self.main_module = nn.Sequential(
             # Z latent vector 100
             nn.ConvTranspose2d(in_channels=100, out_channels=1024, kernel_size=4, stride=1, padding=0),
-            nn.BatchNorm2d(num_features=1024),
             # nn.ReLU(True),
-            nn.ELU(),
 
-            nn.Conv2d(in_channels=1024, out_channels=1024, kernel_size=3, stride=1, padding=1),       
             nn.BatchNorm2d(num_features=1024),
-            # nn.ReLU(True),
-            nn.ELU(),
+            nn.ReLU(),
+            nn.Conv2d(in_channels=1024, out_channels=1024, kernel_size=3, stride=1, padding=1),
 
             # State (1024x4x4)
+            nn.BatchNorm2d(num_features=1024),
+            nn.ReLU(),
             nn.ConvTranspose2d(in_channels=1024, out_channels=512, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(num_features=512),
-            # nn.ReLU(True),
-            nn.ELU(),
 
             # State (512x8x8)
+            nn.BatchNorm2d(num_features=512),
+            nn.ReLU(),
             nn.ConvTranspose2d(in_channels=512, out_channels=256, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(num_features=256),
-            # nn.ReLU(True),
-            nn.ELU(),
 
             # State (256x16x16)
+            nn.BatchNorm2d(num_features=256),
+            nn.ReLU(),
             nn.ConvTranspose2d(in_channels=256, out_channels=3, kernel_size=4, stride=2, padding=1))
             # output of main module --> Image (Cx32x32)
 
@@ -143,34 +140,32 @@ class Discriminator_big(nn.Module):
         nc=3
         self.model = nn.Sequential(
             # input is (nc) x 64 x 64
-            nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf),
-            nn.ELU(),
-            # nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(nc, ndf, 4, 2, 1),
 
             # state size. (ndf) x 32 x 32
-            nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 2),
-            nn.ELU(),
+            nn.ReLU(),
+            nn.Conv2d(ndf, ndf * 2, 4, 2, 1),
+            # nn.BatchNorm2d(ndf * 2),
             # nn.LeakyReLU(0.2, inplace=True),
 
             # state size. (ndf*2) x 16 x 16
-            nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 4),
-            nn.ELU(),
+            nn.ReLU(),
+            nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1),
+            # nn.BatchNorm2d(ndf * 4),
             # nn.LeakyReLU(0.2, inplace=True),
 
-            nn.Conv2d(ndf * 4, ndf*8, 4, 1, 0, bias=False),
-            nn.BatchNorm2d(ndf*8),
-            nn.ELU(),
+            nn.ReLU(),
+            nn.Conv2d(ndf * 4, ndf*8, 4, 1, 0),
+            # nn.BatchNorm2d(ndf*8),
             # nn.LeakyReLU(0.2, inplace=True),
 
             Flatten(),
-            nn.Linear(512,100),
+            nn.ReLU(),
+            nn.Linear(512, 100),
             nn.BatchNorm1d(100),
             nn.ReLU(),
             nn.Linear(100,1),
-            nn.Sigmoid()
+            # nn.Sigmoid()
             # # state size. (ndf*8) x 4 x 4
             # nn.Conv2d(ndf * 4, 1, 4, 1, 0, bias=False),
             # nn.Sigmoid()
