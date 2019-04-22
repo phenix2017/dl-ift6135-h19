@@ -10,6 +10,8 @@ from tensorboardX import SummaryWriter
 from model import *
 from utils import *
 import scipy.misc as misc
+from torch.autograd import Variable
+from torchvision import utils
 
 class trainer():
     def __init__(self, args):
@@ -86,7 +88,10 @@ class trainer():
             if(epoch%self.args.save_every==0 and epoch>0):
                 self.save(epoch)
 
-        generate_latent_walk(epoch)
+            self.generate_latent_walk(epoch)
+
+
+            self.generate_latent_walk_disentangled(epoch)
 
     def get_real_samples(self):
         try:
@@ -111,11 +116,24 @@ class trainer():
 
     def get_loss_dis(self, real, save=False, epoch=0):
         fake = self.model.generate(self.device)
+        # print(real.shape)
+        # print(torch.max(real[0]))
+        # print(torch.min(real[0]))
+        # print(torch.max(fake[0]))
+        # print(torch.min(fake[0]))
+        # print('.....')
 
         if save:
+
+             ## save images
+            imgs_to_save = real.detach().cpu().numpy()
+            imgs_to_save = np.round((np.transpose(imgs_to_save , (0,2,3,1)) + 1) * 255 / 2)   
+            for i,img in enumerate(imgs_to_save):
+                misc.imsave(self.args.image_log_dir + 'real_' + str(epoch)+ '_' +str(i)+'.png', img)
+                           
             ## save images
             imgs_to_save = fake.detach().cpu().numpy()
-            imgs_to_save = np.transpose(imgs_to_save , (0,2,3,1))
+            imgs_to_save = np.round((np.transpose(imgs_to_save , (0,2,3,1)) + 1) * 255 / 2)   
             for i,img in enumerate(imgs_to_save):
                 misc.imsave(self.args.image_log_dir + str(epoch)+ '_' +str(i)+'.png', img)
 
@@ -183,15 +201,16 @@ class trainer():
         if not os.path.exists('interpolated_images/'):
             os.makedirs('interpolated_images/')
 
+        print('interpolating')
+
         # Interpolate between twe noise(z1, z2) with number_int steps between
         number_int = 10
-        z_intp = torch.FloatTensor(1, 100, 1, 1)
-        z1 = torch.randn(1, 100, 1, 1)
-        z2 = torch.randn(1, 100, 1, 1)
-        if self.cuda:
-            z_intp = z_intp.cuda()
-            z1 = z1.cuda()
-            z2 = z2.cuda()
+        z_intp = torch.FloatTensor(1, 100)
+        z1 = torch.randn(1, 100)
+        z2 = torch.randn(1, 100)
+        z_intp = z_intp.cuda()
+        z1 = z1.cuda()
+        z2 = z2.cuda()
 
         z_intp = Variable(z_intp)
         images = []
@@ -211,71 +230,25 @@ class trainer():
     def generate_latent_walk_disentangled(self, number):
         if not os.path.exists('interpolated_images/'):
             os.makedirs('interpolated_images/')
+        z = torch.randn(1, 100)
 
-        sigma_mean = torch.ones((100))
-        mu_mean = torch.zeros((100))
+        for i in range(20):
+            z1 = torch.clone(z).cuda()
+            images = []
+            lower_lim = -1.0
+            step_size = 0.2
+            for j in range(10):
 
-        # Interpolate between twe noise(z1, z2) with number_int steps between
-        number_int = 10
-        z_intp = torch.FloatTensor(1, 100, 1, 1)
-        z1 = torch.randn(1, 100, 1, 1)          ### ? ?
-        z2 = torch.randn(1, 100, 1, 1)
-        if self.cuda:
-            z_intp = z_intp.cuda()
-            z1 = z1.cuda()
-            z2 = z2.cuda()
+                z1[0,i] = lower_lim + step_size
+                lower_lim += step_size
 
-        z_intp = Variable(z_intp)
-        images = []
-        alpha = 1.0 / float(number_int + 1)
-        print(alpha)
-        for i in range(1, number_int + 1):
-            z_intp.data = z1*alpha + z2*(1.0 - alpha)
-            alpha += alpha
-            fake_im = self.model.generator(z_intp)
-            fake_im = fake_im.mul(0.5).add(0.5) #denormalize
-            images.append(fake_im.view(3,32,32).data.cpu())
+                fake_im = self.model.generator(z1)
+                fake_im = fake_im.mul(0.5).add(0.5) #denormalize
+                images.append(fake_im.view(3,32,32).data.cpu())
 
-        grid = utils.make_grid(images, nrow=number_int )
-        utils.save_image(grid, 'interpolated_images/interpolated_{}.png'.format(str(number).zfill(3)))
-        print("Saved interpolated images to interpolated_images/interpolated_{}.".format(str(number).zfill(3)))
-
-
-    def stub():
-            # Save generated variable images :
-            var_z = betavae.encoder(var_x)
-            mu_z, log_var_z = torch.chunk(var_z, 2, dim=1 )
-            mu_mean /= batch_size
-            
-            sigma_mean /= batch_size
-            gen_images = None
-
-            for latent in range(z_dim) :
-                #var_z0 = torch.stack( [mu_mean]*nbr_steps, dim=0)
-                #var_z0 = torch.zeros(nbr_steps, z_dim)
-                var_z0 = mu_z.cpu().data
-                val = mu_mean[latent]-sigma_mean[latent]
-                step = 2.0*sigma_mean[latent]/nbr_steps
-                print(latent,mu_mean[latent],step)
-                for i in range(nbr_steps) :
-                    var_z0[i] = mu_mean
-                    var_z0[i][latent] = val
-                    val += step
-
-                var_z0 = Variable(var_z0)
-                if use_cuda :
-                    var_z0 = var_z0.cuda()
-
-
-                gen_images_latent = betavae.decoder(var_z0)
-                gen_images_latent = gen_images_latent.view(-1, img_depth, img_dim, img_dim).cpu().data
-                if gen_images is None :
-                    gen_images = gen_images_latent
-                else :
-                    gen_images = torch.cat( [gen_images,gen_images_latent], dim=0)
-
-            #torchvision.utils.save_image(gen_images.data.cpu(),'./beta-data/{}/gen_images/dim{}/{}.png'.format(path,latent,(epoch+1)) )
-            torchvision.utils.save_image(255.0*gen_images,'./beta-data/{}/gen_images/{}.png'.format(path,(epoch)) )
+            grid = utils.make_grid(images, nrow=10 )
+            utils.save_image(grid, 'interpolated_images/dim_{}_{}_epoch{}.png'.format(str(i),str(j),str(number).zfill(3)))           
+            print("Saved interpolated images to interpolated_images/interpolated_{}.".format(str(number).zfill(3)))
 
 
 
@@ -283,7 +256,7 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     args = parser.parse_args()
 
-    args.latent_dim = 200
+    args.latent_dim = 100
     args.batch_size = 32
     args.use_cuda = True
     args.log_path = '/network/home/guptagun/code/dl/wgan/{0:%Y%m%d_%H%M%S}_wgan'.format(datetime.datetime.now())
@@ -299,5 +272,7 @@ if __name__=='__main__':
     args.save_every = 50
     args.mode = 'gan'
     runner = trainer(args)
-    runner.train_gan(100)
+    runner.train_gan(200)
+
+    # convergence
 
