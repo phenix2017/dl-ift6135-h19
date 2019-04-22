@@ -64,7 +64,7 @@ class trainer():
         for epoch in range(num_epochs):
             print('epoch '+str(epoch))
 
-            for j in range(5):
+            for j in range(8):
                 real, _ = self.get_real_samples()
                 if(j==0 and epoch%self.args.save_every==0):
                     loss_dis = self.get_loss_dis(real, True, epoch)
