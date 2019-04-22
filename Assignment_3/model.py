@@ -136,6 +136,7 @@ class Discriminator_big(nn.Module):
         self.model = nn.Sequential(
             # input is (nc) x 64 x 64
             nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf),
             nn.LeakyReLU(0.2, inplace=True),
 
             # state size. (ndf) x 32 x 32
@@ -153,11 +154,8 @@ class Discriminator_big(nn.Module):
             nn.Sigmoid()
         )
 
-        self.linear = nn.Sequential(nn.Linear(256, 100),
-                                    nn.Tanh(),
-                                    nn.Linear(100, 1))
-
     def forward(self, input):
         output = self.model(input)
 
         return output.view(-1, 1).squeeze(1)
+
