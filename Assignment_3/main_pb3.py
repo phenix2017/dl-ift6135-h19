@@ -64,7 +64,7 @@ class trainer():
 
             for j in range(5):
                 real, _ = self.get_real_samples()
-                if(j==0 and epoch%100==0):
+                if(j==0 and epoch%50==0):
                     loss_dis = self.get_loss_dis(real, True, epoch)
                 else:
                     loss_dis = self.get_loss_dis(real)                    
@@ -162,21 +162,16 @@ class trainer():
         torch.save(self.model.cpu().state_dict(), os.path.join(self.args.save_path, self.args.saving_file + '_' + str(step) + '.pt'))
         self.model.to(self.device)
 
-
-
-
-
-
-    #todo: modify the following 3 funcs and add code for latent visuals
+    def load(self, step):
+        self.model.load_state_dict(torch.load(self.args.save_path, self.args.saving_file + '_' + str(step) + '.pt'))
+        self.model.to(self.device)
 
     def save_model(self):
         torch.save(self.model.generator.state_dict(), './generator.pkl')
         torch.save(self.model.discriminator.state_dict(), './discriminator.pkl')
         print('Models save to ./generator.pkl & ./discriminator.pkl ')
 
-    def load_model(self, D_model_filename, G_model_filename):
-        D_model_path = os.path.join(os.getcwd(), D_model_filename)
-        G_model_path = os.path.join(os.getcwd(), G_model_filename)
+    def load_model(self, D_model_path, G_model_path):
         self.model.discriminator.load_state_dict(torch.load(D_model_path))
         self.model.generator.load_state_dict(torch.load(G_model_path))
         print('Generator model loaded from {}.'.format(G_model_path))
@@ -205,7 +200,36 @@ class trainer():
             alpha += alpha
             fake_im = self.model.generator(z_intp)
             fake_im = fake_im.mul(0.5).add(0.5) #denormalize
-            images.append(fake_im.view(self.C,32,32).data.cpu())
+            images.append(fake_im.view(3,32,32).data.cpu())
+
+        grid = utils.make_grid(images, nrow=number_int )
+        utils.save_image(grid, 'interpolated_images/interpolated_{}.png'.format(str(number).zfill(3)))
+        print("Saved interpolated images to interpolated_images/interpolated_{}.".format(str(number).zfill(3)))
+
+    def generate_latent_walk_disentangled(self, number):
+        if not os.path.exists('interpolated_images/'):
+            os.makedirs('interpolated_images/')
+
+        # Interpolate between twe noise(z1, z2) with number_int steps between
+        number_int = 10
+        z_intp = torch.FloatTensor(1, 100, 1, 1)
+        z1 = torch.randn(1, 100, 1, 1)
+        z2 = torch.randn(1, 100, 1, 1)
+        if self.cuda:
+            z_intp = z_intp.cuda()
+            z1 = z1.cuda()
+            z2 = z2.cuda()
+
+        z_intp = Variable(z_intp)
+        images = []
+        alpha = 1.0 / float(number_int + 1)
+        print(alpha)
+        for i in range(1, number_int + 1):
+            z_intp.data = z1*alpha + z2*(1.0 - alpha)
+            alpha += alpha
+            fake_im = self.model.generator(z_intp)
+            fake_im = fake_im.mul(0.5).add(0.5) #denormalize
+            images.append(fake_im.view(3,32,32).data.cpu())
 
         grid = utils.make_grid(images, nrow=number_int )
         utils.save_image(grid, 'interpolated_images/interpolated_{}.png'.format(str(number).zfill(3)))
@@ -213,12 +237,11 @@ class trainer():
 
 
 
-
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     args = parser.parse_args()
 
-    args.latent_dim = 100
+    args.latent_dim = 200
     args.batch_size = 32
     args.use_cuda = True
     args.log_path = '/network/home/guptagun/code/dl/wgan/{0:%Y%m%d_%H%M%S}_wgan'.format(datetime.datetime.now())
@@ -234,5 +257,5 @@ if __name__=='__main__':
 
     args.mode = 'gan'
     runner = trainer(args)
-    runner.train_gan(10000)
+    runner.train_gan(100)
 
