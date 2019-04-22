@@ -250,3 +250,11 @@ if __name__=='__main__':
     runner.train_gan(200000)
 
 
+#grad penalty calc
+#vae thing
+#try without penalty
+# batchnorm inits
+# eval mode
+
+
+## use upsample and conv 2d
