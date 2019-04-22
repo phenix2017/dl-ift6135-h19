@@ -58,8 +58,8 @@ class trainer():
         writer = SummaryWriter(self.args.log_path)
         step = 0
 
-        optim_dis = torch.optim.Adam(self.model.discriminator.parameters(), eps = 1e-6, betas=(0.5,0.9),lr=1e-4)
-        optim_gen = torch.optim.Adam(self.model.generator.parameters(), eps=1e-6, betas=(0.5,0.9),lr=1e-4)
+        optim_dis = torch.optim.Adam(self.model.discriminator.parameters(), eps = 1e-6, lr=1e-4) #betas=(0.5,0.9)
+        optim_gen = torch.optim.Adam(self.model.generator.parameters(), eps=1e-6, lr=1e-4)
 
         for epoch in range(num_epochs):
             print('epoch '+str(epoch))
@@ -116,13 +116,7 @@ class trainer():
         fake = self.model.generate(self.device)
 
         if save:
-
-            #  ## save images
-            # imgs_to_save = real.detach().cpu().numpy()
-            # imgs_to_save = np.round((np.transpose(imgs_to_save , (0,2,3,1)) + 1) * 255 / 2)   
-            # for i,img in enumerate(imgs_to_save):
-            #     misc.imsave(self.args.image_log_dir + 'real_' + str(epoch)+ '_' +str(i)+'.png', img)
-                           
+                       
             ## save images
             imgs_to_save = fake.detach().cpu().numpy()
             imgs_to_save = np.round((np.transpose(imgs_to_save , (0,2,3,1)) + 1) * 255 / 2)   
@@ -251,8 +245,8 @@ if __name__=='__main__':
     args.saving_file = 'ckpt'
     args.dataset_location = '/network/home/guptagun/code/dl'
     args.save_every = 150
-    args.mode = 'vae'
+    args.mode = 'gan'
     runner = trainer(args)
-    runner.train_vae(200000)
+    runner.train_gan(200000)
 
 
