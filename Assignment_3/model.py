@@ -92,52 +92,72 @@ class GAN(nn.Module):
         return out
 
 
-class Generator(nn.Module):
-    def __init__(self, args):
+
+class Generator(torch.nn.Module):
+    def __init__(self, channels):
         super().__init__()
-        self.args = args
+        # Filters [1024, 512, 256]
+        # Input_dim = 100
+        # Output_dim = C (number of channels)
+        self.main_module = nn.Sequential(
+            # Z latent vector 100
+            nn.ConvTranspose2d(in_channels=100, out_channels=1024, kernel_size=4, stride=1, padding=0),
+            nn.BatchNorm2d(num_features=1024),
+            nn.ReLU(True),
 
+            # State (1024x4x4)
+            nn.ConvTranspose2d(in_channels=1024, out_channels=512, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(num_features=512),
+            nn.ReLU(True),
 
-        self.model = nn.Sequential(
-            nn.ConvTranspose2d(100, 32 * 8, 4, 1, 0, ),
-            nn.Tanh(),
-            nn.ConvTranspose2d(32* 8, 32 * 4, 4, 2, 1, ),
-            nn.Tanh(),
-            nn.ConvTranspose2d(32 * 4, 32 * 2, 4, 2, 1, ),
-            nn.Tanh(),
-            nn.ConvTranspose2d(64, 3, 4, 2, 1,),
-            nn.Tanh()
+            # State (512x8x8)
+            nn.ConvTranspose2d(in_channels=512, out_channels=256, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(num_features=256),
+            nn.ReLU(True),
 
-        )
+            # State (256x16x16)
+            nn.ConvTranspose2d(in_channels=256, out_channels=3, kernel_size=4, stride=2, padding=1))
+            # output of main module --> Image (Cx32x32)
 
-    def forward(self, z):
-        img = self.model(z.unsqueeze(-1).unsqueeze(-1))
+        self.output = nn.Tanh()
 
-        return img
+    def forward(self, x):
+        x = self.main_module(x.unsqueeze(-1).unsqueeze(-1))
+        return self.output(x)
+
 
 
 class Discriminator_big(nn.Module):
     def __init__(self, args):
         super().__init__()
 
+        ndf = 64
+        nc=3
         self.model = nn.Sequential(
-            nn.Conv2d(3, 16, 3, 2, 0),
-            nn.Tanh(),
-            nn.Conv2d(16, 32, 3,2,  0),
-            nn.Tanh(),
-            nn.Conv2d(32, 64, 3,2,  1),
-            nn.Tanh(),
-            nn.Conv2d(64, 64, 3, 2, 1),
-            Flatten()
+            # input is (nc) x 64 x 64
+            nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
+            nn.LeakyReLU(0.2, inplace=True),
+
+            # state size. (ndf) x 32 x 32
+            nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 2),
+            nn.LeakyReLU(0.2, inplace=True),
+
+            # state size. (ndf*2) x 16 x 16
+            nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 4),
+            nn.LeakyReLU(0.2, inplace=True),
+
+            # state size. (ndf*8) x 4 x 4
+            nn.Conv2d(ndf * 4, 1, 4, 1, 0, bias=False),
+            nn.Sigmoid()
         )
 
         self.linear = nn.Sequential(nn.Linear(256, 100),
                                     nn.Tanh(),
                                     nn.Linear(100, 1))
 
-    def forward(self, img):
+    def forward(self, input):
+        output = self.model(input)
 
-        hidden = self.model(img)
-        final  = self.linear(hidden)
-        return final
-
+        return output.view(-1, 1).squeeze(1)

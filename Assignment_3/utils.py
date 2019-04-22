@@ -61,6 +61,11 @@ def get_kl( q_loc, q_logvar) :
 
     return kl
 
+def get_kl2(mu, log_var):
+    KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
+    return KLD
+
+
 def calc_gradient_penalty(net, real_data, fake_data, lam = 10):
     alpha = torch.rand(real_data.size()[0], 1, device=real_data.device).unsqueeze(-1).unsqueeze(-1)
 
