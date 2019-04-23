@@ -31,8 +31,11 @@ class trainer():
 
         if args.mode =='vae':
             self.args.image_log_dir = os.path.join(args.log_path_img, 'images/vae/')
+            self.args.image_log_dir_parent = os.path.join(args.log_path_img, 'images/fid/vae/')
+
         elif args.mode =='gan':
             self.args.image_log_dir = os.path.join(args.log_path_img, 'images/gan/')
+            self.args.image_log_dir_parent = os.path.join(args.log_path_img, 'images/fid/gan/')
 
         if not os.path.exists(self.args.image_log_dir):
             os.makedirs(self.args.image_log_dir)
@@ -62,7 +65,7 @@ class trainer():
             for i, (x, y) in enumerate(train):
                 iter+=1
                 x = x.to(self.device)
-                if( i%self.args.save_every==0):
+                if( iter%self.args.save_every==0):
                     loss, kl , out= self.get_loss_vae(x, True, iter)
                 else:
                     loss, kl , out= self.get_loss_vae(x)
@@ -84,14 +87,15 @@ class trainer():
 
         optim_dis = torch.optim.Adam(self.model.discriminator.parameters(), eps = 1e-6, lr=1e-4)
         optim_gen = torch.optim.Adam(self.model.generator.parameters(), eps=1e-6, lr=1e-4)
-
+        iter = 0 
         for epoch in range(num_epochs):
             print('epoch '+str(epoch))
 
             for j in range(4):
+                iter += 1
                 real, _ = self.get_real_samples()
-                if(j==0 and epoch%self.args.save_every==0):
-                    loss_dis = self.get_loss_dis(real, True, epoch)
+                if(iter%self.args.save_every==0):
+                    loss_dis = self.get_loss_dis(real, True, iter)
                 else:
                     loss_dis = self.get_loss_dis(real)
                 optim_dis.zero_grad()
@@ -113,8 +117,29 @@ class trainer():
             if(epoch%self.args.save_every==0 and epoch>0):
                 self.save(epoch)
 
-        self.generate_latent_walk(epoch)
-        self.generate_latent_walk_disentangled(epoch)
+    def load_vae_interpolate(self):
+        train, valid, test = get_data_loader(self.args.dataset_location, 32)
+        for i, (x, y) in enumerate(train):
+            self.load(19)
+            self.save_images()
+            self.generate_latent_walk(0)
+            self.generate_latent_walk_disentangled(0)
+            self.generate_data_walk(x, 0)
+            break
+
+    def load_gan_interpolate(self):
+        self.load(step)
+        self.save_images()
+        self.generate_latent_walk(0)
+        self.generate_latent_walk_disentangled(0)
+
+    def save_images(self):
+        for i in range(16):
+            output = self.model.generate(self.device)
+            output_imgs_to_save = output.detach().cpu().add(1).mul(.5)
+            # for img_i,_ in enumerate(output_imgs_to_save):
+            #     vutils.save_image(output_imgs_to_save[img_i], os.path.join(self.args.image_log_dir_parent, 'output_{}_{}.png'.format(i,str(img_i))))
+            vutils.save_image(output_imgs_to_save, os.path.join(self.args.image_log_dir, 'grid_output_{}.png'.format(i)))
 
     def get_real_samples(self):
         try:
@@ -128,13 +153,14 @@ class trainer():
         return real_images, real_labels
 
 
-    def get_loss_vae( self, real, save=False, epoch=0):
+    def get_loss_vae( self, real, save=False, epoch=0, finalsave= False):
         output, mean, logvar = self.model(real)
-        kl = get_kl(mean, logvar)
-        loss = (output-real).pow(2).mean() + kl.mean()
-
+        kl = get_kl2(mean, logvar)
+        loss = (output-real).pow(2).sum() + kl
+        print(loss.shape)
+        print(kl.shape)
         print('epoch : '+str(epoch))
-        print('vae loss: '+str(loss.cpu().item()))
+        print('vae loss: '+str(loss.mean().cpu().item()))
         print('vae kl: '+str(kl.mean().cpu().item()))
         print('vae output: '+str((output-real).pow(2).mean().cpu().item()))
 
@@ -142,9 +168,9 @@ class trainer():
             real_imgs_to_save = real.detach().cpu().add(1).mul(.5)
             output_imgs_to_save = output.detach().cpu().add(1).mul(.5)
 
+            vutils.save_image(real_imgs_to_save, os.path.join(self.args.image_log_dir, 'inputs.png'.format(epoch)))
 
-            vutils.save_image(real_imgs_to_save, os.path.join(self.args.image_log_dir, 'inputs.png'.format(epoch)), nrow=8)
-            vutils.save_image(output_imgs_to_save, os.path.join(self.args.image_log_dir, 'output_{:05d}.png'.format(epoch)), nrow=8)
+            vutils.save_image(output_imgs_to_save, os.path.join(self.args.image_log_dir, 'output_{:05d}.png'.format(epoch)))
 
             ## save loss
             self.epochs.append(epoch)
@@ -179,9 +205,6 @@ class trainer():
             ## save images
             real_imgs_to_save = real.detach().cpu().add(1).mul(.5)
             fake_imgs_to_save = fake.detach().cpu().add(1).mul(.5)
-            # imgs_to_save = np.round((np.transpose(imgs_to_save , (0,2,3,1)) + 1) * 255 / 2)
-            # for i, img in enumerate(imgs_to_save):
-                # misc.imsave(os.path.join(self.args.image_log_dir, str(epoch)+ '_' +str(i)+'.png'), img)
 
             vutils.save_image(real_imgs_to_save, os.path.join(self.args.image_log_dir, 'real.png'.format(epoch)), nrow=8)
             vutils.save_image(fake_imgs_to_save, os.path.join(self.args.image_log_dir, 'fake_{:05d}.png'.format(epoch)), nrow=8)
@@ -251,7 +274,7 @@ class trainer():
         self.model.to(self.device)
 
     def load(self, step):
-        self.model.load_state_dict(torch.load(self.args.save_path, self.args.saving_file + '_' + str(step) + '.pt'))
+        self.model.load_state_dict(torch.load(self.args.saved_save_path + self.args.saving_file + '_' + str(step) + '.pt'))
         self.model.to(self.device)
 
     def generate_latent_walk(self, number):
@@ -261,7 +284,7 @@ class trainer():
 
         print('interpolating')
 
-        # Interpolate between twe noise(z1, z2) with number_int steps between
+        # Interpolate between the noise(z1, z2) with number_int steps between
         number_int = 10
         z_intp = torch.FloatTensor(1, 100)
         z1 = torch.randn(1, 100)
@@ -272,20 +295,19 @@ class trainer():
 
         z_intp = Variable(z_intp)
         images = []
-        alpha = 1.0 / float(number_int + 1)
-        print(alpha)
+        alpha_step = 1.0 / float(number_int + 1)
+        print(alpha_step)
+        alpha = 0
         for i in range(1, number_int + 1):
             z_intp.data = z1*alpha + z2*(1.0 - alpha)
-            alpha += alpha
+            alpha += alpha_step 
             fake_im = self.model.generator(z_intp)
             fake_im = fake_im.mul(0.5).add(0.5) #denormalize
             images.append(fake_im.view(3,32,32).data.cpu())
 
         grid = utils.make_grid(images, nrow=number_int )
         utils.save_image(grid, 'interpolated_images/interpolated_{}.png'.format(str(number).zfill(3)))
-        print("Saved interpolated images to interpolated_images/interpolated_{}.".format(str(number).zfill(3)))
-
-        self.model.train()
+        print("Saved latent interpolated images to interpolated_images/interpolated_{}.".format(str(number).zfill(3)))
 
     def generate_latent_walk_disentangled(self, number):
         self.model.eval()
@@ -293,7 +315,7 @@ class trainer():
             os.makedirs('interpolated_images/')
         z = torch.randn(1, 100)
 
-        for i in range(20):
+        for i in range(10,90):
             z1 = torch.clone(z).cuda()
             images = []
             lower_lim = -1.0
@@ -308,40 +330,79 @@ class trainer():
                 images.append(fake_im.view(3,32,32).data.cpu())
 
             grid = utils.make_grid(images, nrow=10 )
-            utils.save_image(grid, 'interpolated_images/dim_{}_{}_epoch{}.png'.format(str(i),str(j),str(number).zfill(3)))           
-            print("Saved interpolated images to interpolated_images/interpolated_{}.".format(str(number).zfill(3)))
+            utils.save_image(grid, 'interpolated_images/varying_dim-{}_{}_epoch{}.png'.format(str(i),str(j),str(number).zfill(3)))           
+            print("Saved disentangled interpolated images to interpolated_images/interpolated_{}.".format(str(number).zfill(3)))
 
-        self.model.train()
+    def generate_data_walk(self, real, number):
+        self.model.eval()
+        if not os.path.exists('interpolated_images/'):
+            os.makedirs('interpolated_images/')
 
+        print('interpolating')
+
+        # Interpolate between the noise(z1, z2) with number_int steps between
+        number_int = 10
+        img1 = real[0]
+        img2 = real[1]
+
+        images = []
+        alpha_step = 1.0 / float(number_int + 1)
+        print(alpha_step)
+        alpha = 0
+
+        for i in range(1, number_int + 1):
+            img = img1*alpha + img2*(1.0 - alpha)
+            alpha += alpha_step 
+            im = img.mul(0.5).add(0.5) #denormalize
+            images.append(im.view(3,32,32).data.cpu())
+
+        grid = utils.make_grid(images, nrow=number_int )
+        utils.save_image(grid, 'interpolated_images/data_interpolated_{}.png'.format(str(number).zfill(3)), nrow=8)
+        print("Saved data interpolated images to interpolated_images/interpolated_{}.".format(str(number).zfill(3)))
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     args = parser.parse_args()
 
     args.latent_dim = 100
-    args.batch_size = 32
+    args.batch_size = 64
     args.use_cuda = True
-    args.log_path_img = '/network/home/guptagun/code/dl'
-    args.log_path = '/network/home/guptagun/dl/wgan/{0:%Y%m%d_%H%M%S}_wgan'.format(datetime.datetime.now())
-    args.save_path = os.path.join(args.log_path, 'weights')
+    args.basepath = '/network/home/guptagun/code/dl/'
+    args.log_path_img = args.basepath
+
+    args.mode = 'gan'
+    args.task = 'train' #'sample'
+
+    if(args.mode=='gan'):
+        args.log_path = args.basepath + 'saved/{0:%Y%m%d_%H%M%S}_wgan'.format(datetime.datetime.now())
+    else:
+        args.log_path = args.basepath + 'saved/{0:%Y%m%d_%H%M%S}_vae'.format(datetime.datetime.now())
+    args.save_path = os.path.join(args.log_path, 'weights/')
+
     if not os.path.exists(args.log_path):
         os.makedirs(args.log_path)
 
     if not os.path.exists(args.save_path):
         os.makedirs(args.save_path)
 
+    args.saved_log_path = args.basepath + 'saved/20190423_063358_vae'
+    args.saved_save_path = os.path.join(args.saved_log_path, 'weights/')
+
+
     args.saving_file = 'ckpt'
-    args.dataset_location = '/network/home/guptagun/code/dl'
-    args.save_every = 20
-    args.mode = 'vae'
+    args.dataset_location = args.basepath
+    args.save_every = 100
     runner = trainer(args)
-    runner.train_vae(200000)
+    if args.task == 'train':
+        if(args.mode=='gan'):
+            runner.train_gan(100)
+        else:
+            runner.train_vae(40)
+    else:
+        if(args.mode=='gan'):
+            runner.load_gan_interpolate()
+        else:
+            runner.load_vae_interpolate()
 
 
 
-# vae gan
-# vae thing
-
-# eval mode
-
-# weight inits --

@@ -128,13 +128,12 @@ def calculate_fid_score(sample_feature_iterator,
 
 
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Score a directory of images with the FID score.')
     parser.add_argument('--model', type=str, default="svhn_classifier.pt",
                         help='Path to feature extraction model.')
-    parser.add_argument('directory', type=str,
+    parser.add_argument('--directory', type=str, default="/network/home/guptagun/code/dl/images/fid/samples/",
                         help='Path to image directory')
     args = parser.parse_args()
 
