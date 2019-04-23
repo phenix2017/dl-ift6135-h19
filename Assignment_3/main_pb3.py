@@ -91,7 +91,7 @@ class trainer():
         for epoch in range(num_epochs):
             print('epoch '+str(epoch))
 
-            for j in range(4):
+            for j in range(2):
                 iter += 1
                 real, _ = self.get_real_samples()
                 if(iter%self.args.save_every==0):
@@ -128,7 +128,7 @@ class trainer():
             break
 
     def load_gan_interpolate(self):
-        self.load(step)
+        self.load(9900)
         self.save_images()
         self.generate_latent_walk(0)
         self.generate_latent_walk_disentangled(0)
@@ -137,9 +137,9 @@ class trainer():
         for i in range(16):
             output = self.model.generate(self.device)
             output_imgs_to_save = output.detach().cpu().add(1).mul(.5)
-            # for img_i,_ in enumerate(output_imgs_to_save):
-            #     vutils.save_image(output_imgs_to_save[img_i], os.path.join(self.args.image_log_dir_parent, 'output_{}_{}.png'.format(i,str(img_i))))
-            vutils.save_image(output_imgs_to_save, os.path.join(self.args.image_log_dir, 'grid_output_{}.png'.format(i)))
+            for img_i,_ in enumerate(output_imgs_to_save):
+                vutils.save_image(output_imgs_to_save[img_i], os.path.join(self.args.image_log_dir_parent, 'output_{}_{}.png'.format(i,str(img_i))))
+            # vutils.save_image(output_imgs_to_save, os.path.join(self.args.image_log_dir, 'grid_output_{}.png'.format(i)))
 
     def get_real_samples(self):
         try:
@@ -371,7 +371,7 @@ if __name__=='__main__':
     args.log_path_img = args.basepath
 
     args.mode = 'gan'
-    args.task = 'train' #'sample'
+    args.task = 'sample'
 
     if(args.mode=='gan'):
         args.log_path = args.basepath + 'saved/{0:%Y%m%d_%H%M%S}_wgan'.format(datetime.datetime.now())
@@ -385,7 +385,7 @@ if __name__=='__main__':
     if not os.path.exists(args.save_path):
         os.makedirs(args.save_path)
 
-    args.saved_log_path = args.basepath + 'saved/20190423_063358_vae'
+    args.saved_log_path = args.basepath + 'saved/20190423_122545_wgan'
     args.saved_save_path = os.path.join(args.saved_log_path, 'weights/')
 
 

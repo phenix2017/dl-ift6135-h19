@@ -7,6 +7,7 @@ import classify_svhn
 from classify_svhn import Classifier
 import numpy as np
 from scipy import linalg
+import scipy
 
 SVHN_PATH = "svhn"
 PROCESS_BATCH_SIZE = 32
@@ -68,6 +69,30 @@ def extract_features(classifier, data_loader):
             for i in range(h.shape[0]):
                 yield h[i]
 
+# def calculate_fid_score(sample_feature_iterator,
+#                         testset_feature_iterator):
+#     """
+    
+#     """
+#     samples = np.array(list(sample_feature_iterator))
+#     testset = np.array(list(testset_feature_iterator))
+#     #print("Done creating arrays")
+#     # means
+#     samples_mu = np.mean(samples, axis=0)
+#     testset_mu = np.mean(testset, axis=0)
+#     # covariance matrices
+#     samples_S = np.cov(samples, rowvar=False)
+#     testset_S = np.cov(testset, rowvar=False)
+    
+#     # FID
+#     return np.sqrt(np.sum((samples_mu - testset_mu) ** 2) + \
+#                     np.trace(samples_S + testset_S - 2 * \
+#                              scipy.linalg.sqrtm(samples_S @ testset_S 
+#                                                 + 1e-4 * np.eye(samples_mu.shape[0]))))
+#     raise NotImplementedError(
+#         "TO BE IMPLEMENTED."
+#         "Part of Assignment 3 Quantitative Evaluations"
+# )
 
 def calculate_fid_score(sample_feature_iterator,
                         testset_feature_iterator):
@@ -104,26 +129,8 @@ def calculate_fid_score(sample_feature_iterator,
     print('sigma')
     print(sigma1.shape)
     print(sigma2.shape)
-    # # Product might be almost singular
-    covmean, _ = linalg.sqrtm(np.dot(sigma1,sigma2), disp=False)
-    if not np.isfinite(covmean).all():
-        msg = ('fid calculation produces singular product; '
-               'adding %s to diagonal of cov estimates') % eps
-        print(msg)
-        offset = np.eye(sigma1.shape[0]) * eps
-        covmean = linalg.sqrtm((sigma1 + offset).dot(sigma2 + offset))
 
-
-    # Numerical error might give slight imaginary component
-    if np.iscomplexobj(covmean):
-        if not np.allclose(np.diagonal(covmean).imag, 0, atol=1e-3):
-            m = np.max(np.abs(covmean.imag))
-            raise ValueError('Imaginary component {}'.format(m))
-        covmean = covmean.real
-
-    tr_covmean = np.trace(covmean)
-    result = (np.dot(diff, diff) + np.trace(sigma1) + np.trace(sigma2) - 2 * tr_covmean)
-    print(result.shape)
+    result = np.sqrt(np.sum((mu_1 - mu_2) ** 2) + np.trace(sigma1 + sigma2 - 2 * scipy.linalg.sqrtm(sigma1 @ sigma2 + 1e-4 * np.eye(mu_1.shape[0]))))
     return result
 
 
