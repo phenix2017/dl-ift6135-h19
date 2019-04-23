@@ -118,7 +118,8 @@ class Generator(torch.nn.Module):
         channels = 3
         latent_dim = 100
         self.init_size = img_size // 4
-        self.l1 = nn.Sequential(nn.Linear(latent_dim, 128 * self.init_size ** 2))
+        self.l1 = nn.Sequential(nn.Linear(latent_dim, 256))
+        self.l2 = nn.Sequential(nn.Linear(256, 128 * self.init_size ** 2))
 
         self.conv_blocks = nn.Sequential(
             nn.BatchNorm2d(128),
@@ -136,6 +137,7 @@ class Generator(torch.nn.Module):
 
     def forward(self, z):
         out = self.l1(z)
+        out = self.l2(out)
         out = out.view(out.shape[0], 128, self.init_size, self.init_size)
         img = self.conv_blocks(out)
         return img

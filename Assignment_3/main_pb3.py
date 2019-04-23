@@ -80,13 +80,13 @@ class trainer():
 
 
     def train_gan(self, num_epochs):
-        train, valid, test = get_data_loader(self.args.dataset_location, 32)
+        train, valid, test = get_data_loader(self.args.dataset_location, 64)
         self.dataloader = train
         # writer = SummaryWriter(self.args.log_path)
         step = 0
 
-        optim_dis = torch.optim.Adam(self.model.discriminator.parameters(), eps = 1e-6, lr=1e-4)
-        optim_gen = torch.optim.Adam(self.model.generator.parameters(), eps=1e-6, lr=1e-4)
+        optim_dis = torch.optim.Adam(self.model.discriminator.parameters(),betas=(0.5, 0.999), lr=1e-4)
+        optim_gen = torch.optim.Adam(self.model.generator.parameters(),betas=(0.5, 0.999), lr=1e-4)
         iter = 0 
         for epoch in range(num_epochs):
             print('epoch '+str(epoch))
@@ -395,7 +395,7 @@ if __name__=='__main__':
     runner = trainer(args)
     if args.task == 'train':
         if(args.mode=='gan'):
-            runner.train_gan(100)
+            runner.train_gan(100000)
         else:
             runner.train_vae(40)
     else:
