@@ -4,28 +4,6 @@ import numpy as np
 from utils import *
 
 
-
-class Discriminator(nn.Module):
-    def __init__(self, args):
-        super().__init__()
-        self.args = args
-
-        self.nn = nn.Sequential(nn.Linear(args.in_dim, 5),
-                                nn.ReLU(),
-                                nn.Linear(5, 10),
-                                nn.ReLU(),
-                                nn.Linear(10, 1))
-
-        self.sigm = nn.Sigmoid()
-
-    def forward(self, x):
-        out  = self.nn(x)
-
-        if self.args.distance == 'js':
-            out = self.sigm(out)
-
-        return out
-
 class VAE(nn.Module):
     def __init__(self, args):
         super().__init__()
@@ -45,7 +23,7 @@ class VAE(nn.Module):
         self.mean = nn.Linear(256, args.latent_dim)
         self.logvar = nn.Linear(256, args.latent_dim)
 
-        self.generator = Generator(args)
+        self.generator = Generator()
 
     def forward(self, input = None, prior = False):
 
@@ -75,7 +53,7 @@ class GAN(nn.Module):
         super().__init__()
         self.args = args
 
-        self.generator = Generator(args)
+        self.generator = Generator()
         self.discriminator = Discriminator_big(args)
 
     def generate(self,device, latent = None):
@@ -93,42 +71,74 @@ class GAN(nn.Module):
 
 
 
+# class Generator(torch.nn.Module):
+#     def __init__(self, channels):
+#         super().__init__()
+#         # Filters [1024, 512, 256]
+#         # Input_dim = 100
+#         # Output_dim = C (number of channels)
+#         self.main_module = nn.Sequential(
+#             # Z latent vector 100
+#             nn.ConvTranspose2d(in_channels=100, out_channels=1024, kernel_size=4, stride=1, padding=0),
+#             # nn.ReLU(True),
+
+#             nn.BatchNorm2d(num_features=1024),
+#             nn.ReLU(),
+#             nn.Conv2d(in_channels=1024, out_channels=1024, kernel_size=3, stride=1, padding=1),
+
+#             # State (1024x4x4)
+#             nn.BatchNorm2d(num_features=1024),
+#             nn.ReLU(),
+#             nn.ConvTranspose2d(in_channels=1024, out_channels=512, kernel_size=4, stride=2, padding=1),
+
+#             # State (512x8x8)
+#             nn.BatchNorm2d(num_features=512),
+#             nn.ReLU(),
+#             nn.ConvTranspose2d(in_channels=512, out_channels=256, kernel_size=4, stride=2, padding=1),
+
+#             # State (256x16x16)
+#             nn.BatchNorm2d(num_features=256),
+#             nn.ReLU(),
+#             nn.ConvTranspose2d(in_channels=256, out_channels=3, kernel_size=4, stride=2, padding=1))
+#             # output of main module --> Image (Cx32x32)
+
+#         self.output = nn.Tanh()
+
+#     def forward(self, x):
+#         x = self.main_module(x.unsqueeze(-1).unsqueeze(-1))
+#         return self.output(x)
+
+
+
 class Generator(torch.nn.Module):
-    def __init__(self, channels):
-        super().__init__()
-        # Filters [1024, 512, 256]
-        # Input_dim = 100
-        # Output_dim = C (number of channels)
-        self.main_module = nn.Sequential(
-            # Z latent vector 100
-            nn.ConvTranspose2d(in_channels=100, out_channels=1024, kernel_size=4, stride=1, padding=0),
-            # nn.ReLU(True),
 
-            nn.BatchNorm2d(num_features=1024),
-            nn.ReLU(),
-            nn.Conv2d(in_channels=1024, out_channels=1024, kernel_size=3, stride=1, padding=1),
+    def __init__(self):
+        super(Generator, self).__init__()
+        img_size = 32
+        channels = 3
+        latent_dim = 100
+        self.init_size = img_size // 4
+        self.l1 = nn.Sequential(nn.Linear(latent_dim, 128 * self.init_size ** 2))
 
-            # State (1024x4x4)
-            nn.BatchNorm2d(num_features=1024),
-            nn.ReLU(),
-            nn.ConvTranspose2d(in_channels=1024, out_channels=512, kernel_size=4, stride=2, padding=1),
+        self.conv_blocks = nn.Sequential(
+            nn.BatchNorm2d(128),
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(128, 128, 3, stride=1, padding=1),
+            nn.BatchNorm2d(128, 0.8),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(128, 64, 3, stride=1, padding=1),
+            nn.BatchNorm2d(64, 0.8),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(64, channels, 3, stride=1, padding=1),
+            nn.Tanh(),
+        )
 
-            # State (512x8x8)
-            nn.BatchNorm2d(num_features=512),
-            nn.ReLU(),
-            nn.ConvTranspose2d(in_channels=512, out_channels=256, kernel_size=4, stride=2, padding=1),
-
-            # State (256x16x16)
-            nn.BatchNorm2d(num_features=256),
-            nn.ReLU(),
-            nn.ConvTranspose2d(in_channels=256, out_channels=3, kernel_size=4, stride=2, padding=1))
-            # output of main module --> Image (Cx32x32)
-
-        self.output = nn.Tanh()
-
-    def forward(self, x):
-        x = self.main_module(x.unsqueeze(-1).unsqueeze(-1))
-        return self.output(x)
+    def forward(self, z):
+        out = self.l1(z)
+        out = out.view(out.shape[0], 128, self.init_size, self.init_size)
+        img = self.conv_blocks(out)
+        return img
 
 
 
@@ -145,18 +155,18 @@ class Discriminator_big(nn.Module):
             # state size. (ndf) x 32 x 32
             nn.ReLU(),
             nn.Conv2d(ndf, ndf * 2, 4, 2, 1),
-            # nn.BatchNorm2d(ndf * 2),
+            nn.BatchNorm2d(ndf * 2),
             # nn.LeakyReLU(0.2, inplace=True),
 
             # state size. (ndf*2) x 16 x 16
             nn.ReLU(),
             nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1),
-            # nn.BatchNorm2d(ndf * 4),
+            nn.BatchNorm2d(ndf * 4),
             # nn.LeakyReLU(0.2, inplace=True),
 
             nn.ReLU(),
             nn.Conv2d(ndf * 4, ndf*8, 4, 1, 0),
-            # nn.BatchNorm2d(ndf*8),
+                nn.BatchNorm2d(ndf*8),
             # nn.LeakyReLU(0.2, inplace=True),
 
             Flatten(),
@@ -165,7 +175,7 @@ class Discriminator_big(nn.Module):
             nn.BatchNorm1d(100),
             nn.ReLU(),
             nn.Linear(100,1),
-            # nn.Sigmoid()
+            nn.Sigmoid()
             # # state size. (ndf*8) x 4 x 4
             # nn.Conv2d(ndf * 4, 1, 4, 1, 0, bias=False),
             # nn.Sigmoid()

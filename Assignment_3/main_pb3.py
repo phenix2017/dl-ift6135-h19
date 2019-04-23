@@ -30,15 +30,19 @@ class trainer():
             self.model = GAN(args).to(self.device)
 
         if args.mode =='vae':
-            self.args.image_log_dir = os.path.join(args.log_path, 'images/vae/')
+            self.args.image_log_dir = os.path.join(args.log_path_img, 'images/vae/')
         elif args.mode =='gan':
-            self.args.image_log_dir = os.path.join(args.log_path, 'images/gan/')
+            self.args.image_log_dir = os.path.join(args.log_path_img, 'images/gan/')
 
         if not os.path.exists(self.args.image_log_dir):
             os.makedirs(self.args.image_log_dir)
 
         self.epochs = []
         self.losses = []
+
+        self.kl_losses = []
+        self.recon_losses = []
+
         self.real_losses = []
         self.fake_losses = []
         self.D_x = []
@@ -48,23 +52,28 @@ class trainer():
 
     def train_vae(self, num_epochs):
         train, valid, test = get_data_loader(self.args.dataset_location, 32)
-        writer = SummaryWriter(self.args.log_path)
+        # writer = SummaryWriter(self.args.log_path)
         step = 0
 
         optim = torch.optim.Adam(self.model.parameters(),  lr=1e-4)
 
+        iter = 0
         for epoch in range(num_epochs):
             for i, (x, y) in enumerate(train):
+                iter+=1
                 x = x.to(self.device)
-                loss, kl , out= self.get_loss_vae(x)
-                print('vae loss: '+str(loss.cpu().item()))
-                print('vae kl: '+str(kl.cpu().item()))
+                if( i%self.args.save_every==0):
+                    loss, kl , out= self.get_loss_vae(x, True, iter)
+                else:
+                    loss, kl , out= self.get_loss_vae(x)
+                # print('vae loss: '+str(loss.cpu().item()))
+                # print('vae kl: '+str(kl.cpu().item()))
                 optim.zero_grad()
                 loss.backward()
                 optim.step()
 
-            step = self.store_logs_vae(writer, step, loss, kl, out, x)
-            self.save(epoch)
+            # step = self.store_logs_vae(writer, step, loss, kl, out, x)
+        self.save(epoch)
 
 
     def train_gan(self, num_epochs):
@@ -73,13 +82,13 @@ class trainer():
         # writer = SummaryWriter(self.args.log_path)
         step = 0
 
-        optim_dis = torch.optim.Adam(self.model.discriminator.parameters(), eps = 1e-6, lr=1e-4) #betas=(0.5,0.9)
+        optim_dis = torch.optim.Adam(self.model.discriminator.parameters(), eps = 1e-6, lr=1e-4)
         optim_gen = torch.optim.Adam(self.model.generator.parameters(), eps=1e-6, lr=1e-4)
 
         for epoch in range(num_epochs):
             print('epoch '+str(epoch))
 
-            for j in range(1):
+            for j in range(4):
                 real, _ = self.get_real_samples()
                 if(j==0 and epoch%self.args.save_every==0):
                     loss_dis = self.get_loss_dis(real, True, epoch)
@@ -119,12 +128,40 @@ class trainer():
         return real_images, real_labels
 
 
-    def get_loss_vae(self, real ):
+    def get_loss_vae( self, real, save=False, epoch=0):
         output, mean, logvar = self.model(real)
-
         kl = get_kl(mean, logvar)
-
         loss = (output-real).pow(2).mean() + kl.mean()
+
+        print('epoch : '+str(epoch))
+        print('vae loss: '+str(loss.cpu().item()))
+        print('vae kl: '+str(kl.mean().cpu().item()))
+        print('vae output: '+str((output-real).pow(2).mean().cpu().item()))
+
+        if save:
+            real_imgs_to_save = real.detach().cpu().add(1).mul(.5)
+            output_imgs_to_save = output.detach().cpu().add(1).mul(.5)
+
+
+            vutils.save_image(real_imgs_to_save, os.path.join(self.args.image_log_dir, 'inputs.png'.format(epoch)), nrow=8)
+            vutils.save_image(output_imgs_to_save, os.path.join(self.args.image_log_dir, 'output_{:05d}.png'.format(epoch)), nrow=8)
+
+            ## save loss
+            self.epochs.append(epoch)
+
+            self.losses.append(loss.item())
+            self.kl_losses.append(kl.mean().item())
+            self.recon_losses.append((output-real).pow(2).mean().item())
+
+            plt.plot(self.epochs, self.losses, color='C0', alpha=0.7, label='loss')
+            plt.plot(self.epochs, self.kl_losses, color='C1', alpha=0.7, label='kl loss')
+            plt.plot(self.epochs, self.recon_losses, color='C2', alpha=0.7, label='recon loss')
+            plt.legend()
+            save_path = os.path.join(self.args.image_log_dir, 'losses.png')
+            plt.savefig(save_path, bbox_inches='tight', pad_inches=0.5)
+
+            plt.clf()
+            plt.close()
 
         return loss, kl.mean(), output
 
@@ -284,7 +321,8 @@ if __name__=='__main__':
     args.latent_dim = 100
     args.batch_size = 32
     args.use_cuda = True
-    args.log_path = '/home/voletiv/EXPERIMENTS/wgan/{0:%Y%m%d_%H%M%S}_wgan'.format(datetime.datetime.now())
+    args.log_path_img = '/network/home/guptagun/code/dl'
+    args.log_path = '/network/home/guptagun/dl/wgan/{0:%Y%m%d_%H%M%S}_wgan'.format(datetime.datetime.now())
     args.save_path = os.path.join(args.log_path, 'weights')
     if not os.path.exists(args.log_path):
         os.makedirs(args.log_path)
@@ -293,18 +331,17 @@ if __name__=='__main__':
         os.makedirs(args.save_path)
 
     args.saving_file = 'ckpt'
-    args.dataset_location = '/home/voletiv/Datasets/SVHN'
+    args.dataset_location = '/network/home/guptagun/code/dl'
     args.save_every = 20
-    args.mode = 'gan'
+    args.mode = 'vae'
     runner = trainer(args)
-    runner.train_gan(200000)
+    runner.train_vae(200000)
 
 
-#grad penalty calc
-#vae thing
-#try without penalty
-# batchnorm inits
+
+# vae gan
+# vae thing
+
 # eval mode
 
-
-## use upsample and conv 2d
+# weight inits --
